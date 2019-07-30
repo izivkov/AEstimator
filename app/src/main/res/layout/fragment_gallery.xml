@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
   ~ Copyright 2019 Google LLC
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +18,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/gallery_layout"
     android:background="@android:color/black">
 
     <androidx.viewpager.widget.ViewPager
@@ -29,50 +29,69 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cutout_safe_area"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <ImageButton
-            android:id="@+id/back_button"
-            android:layout_width="@dimen/round_button_small"
-            android:layout_height="@dimen/round_button_small"
-            android:layout_marginLeft="@dimen/margin_xsmall"
-            android:layout_marginTop="@dimen/margin_small"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/back_button_alt"
-            android:scaleType="fitCenter"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:srcCompat="@drawable/ic_back" />
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar4"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="#80000000"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme"
+            app:layout_constraintTop_toTopOf="parent">
 
-        <ImageButton
-            android:id="@+id/share_button"
-            android:layout_width="@dimen/round_button_small"
-            android:layout_height="@dimen/round_button_small"
-            android:layout_marginBottom="664dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/share_button_alt"
-            android:scaleType="fitCenter"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintHorizontal_bias="0.957"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:srcCompat="@drawable/ic_share" />
+            <ImageButton
+                android:id="@+id/back_button"
+                android:layout_width="@dimen/round_button_small"
+                android:layout_height="@dimen/round_button_small"
+                android:layout_marginStart="20dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/back_button_alt"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/ic_back" />
 
-        <TextView
-            android:id="@+id/myImageViewText"
-            android:layout_width="wrap_content"
-            android:layout_height="30dp"
-            android:layout_margin="20dp"
-            android:layout_marginBottom="4dp"
-            android:gravity="center"
-            android:text="Your Age: "
-            android:textColor="#ffb400"
-            android:textSize="8pt"
-            android:textStyle="bold"
-            android:typeface="sans"
+            <ImageButton
+                android:id="@+id/share_button"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/round_button_small"
+                android:layout_marginEnd="20dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/share_button_alt"
+                android:scaleType="fitEnd"
+                android:visibility="visible"
+                app:srcCompat="@drawable/ic_share"
+                tools:layout_editor_absoluteX="48dp"
+                tools:layout_editor_absoluteY="9dp" />
+        </androidx.appcompat.widget.Toolbar>
+
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar3"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginBottom="0dp"
+            android:background="#80000000"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                android:id="@+id/myImageViewText"
+                android:layout_width="match_parent"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text=""
+                android:textColor="#FFFFE0"
+                android:textSize="10pt"
+                android:typeface="sans"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.appcompat.widget.Toolbar>
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

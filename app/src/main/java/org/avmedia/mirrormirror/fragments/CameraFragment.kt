@@ -21,24 +21,25 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
 import android.hardware.Camera
 import android.hardware.display.DisplayManager
+import android.media.ExifInterface
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Rational
-import android.view.KeyEvent
-import android.view.LayoutInflater
-import android.view.TextureView
-import android.view.View
-import android.view.ViewGroup
+import android.util.Size
+import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
 import androidx.camera.core.CameraX
@@ -53,22 +54,12 @@ import androidx.camera.core.Preview
 import androidx.camera.core.PreviewConfig
 import androidx.navigation.Navigation
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import org.avmedia.mirrormirror.KEY_EVENT_ACTION
-import org.avmedia.mirrormirror.KEY_EVENT_EXTRA
-import org.avmedia.mirrormirror.MainActivity
-import org.avmedia.mirrormirror.R
-import org.avmedia.mirrormirror.utils.ANIMATION_FAST_MILLIS
-import org.avmedia.mirrormirror.utils.ANIMATION_SLOW_MILLIS
-import org.avmedia.mirrormirror.utils.AutoFitPreviewBuilder
-import org.avmedia.mirrormirror.utils.simulateClick
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.avmedia.mirrormirror.KEY_EVENT_ACTION
 import java.io.File
 import java.lang.Exception
 import java.nio.ByteBuffer
@@ -76,6 +67,16 @@ import java.text.SimpleDateFormat
 import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import org.avmedia.mirrormirror.KEY_EVENT_EXTRA
+import org.avmedia.mirrormirror.MainActivity
+import org.avmedia.mirrormirror.R
+import org.avmedia.mirrormirror.utils.ANIMATION_FAST_MILLIS
+import org.avmedia.mirrormirror.utils.ANIMATION_SLOW_MILLIS
+import org.avmedia.mirrormirror.utils.AutoFitPreviewBuilder
+import org.avmedia.mirrormirror.utils.simulateClick
+import java.io.FileDescriptor
+import java.io.FileInputStream
+
 
 /** Helper type alias used for analysis use case callbacks */
 typealias LumaListener = (luma: Double) -> Unit
@@ -94,7 +95,7 @@ class CameraFragment : Fragment() {
     private lateinit var broadcastManager: LocalBroadcastManager
 
     private var displayId = -1
-    private var lensFacing = CameraX.LensFacing.FRONT //BACK
+    private var lensFacing = CameraX.LensFacing.FRONT
     private var preview: Preview? = null
     private var imageCapture: ImageCapture? = null
     private var imageAnalyzer: ImageAnalysis? = null
@@ -242,7 +243,9 @@ class CameraFragment : Fragment() {
             setTargetAspectRatio(screenAspectRatio)
             // Set initial target rotation, we will have to call this again if rotation changes
             // during the lifecycle of this use case
+
             setTargetRotation(viewFinder.display.rotation)
+            // setTargetRotation(Surface.ROTATION_0)
         }.build()
 
         // Use the auto-fit preview builder to automatically handle size and orientation changes
@@ -255,9 +258,13 @@ class CameraFragment : Fragment() {
             // We request aspect ratio but no resolution to match preview config but letting
             // CameraX optimize for whatever specific resolution best fits requested capture mode
             setTargetAspectRatio(screenAspectRatio)
+
             // Set initial target rotation, we will have to call this again if rotation changes
             // during the lifecycle of this use case
+
             setTargetRotation(viewFinder.display.rotation)
+            // setTargetRotation(Surface.ROTATION_0)
+
         }.build()
 
         imageCapture = ImageCapture(imageCaptureConfig)
@@ -327,11 +334,9 @@ class CameraFragment : Fragment() {
                         container.foreground = ColorDrawable(Color.WHITE)
                         container.postDelayed(
                                 { container.foreground = null }, ANIMATION_FAST_MILLIS)
-
                     }, ANIMATION_SLOW_MILLIS)
                 }
             }
-
         }
     }
 
@@ -390,7 +395,7 @@ class CameraFragment : Fragment() {
             // Compute the FPS using a moving average
             while (frameTimestamps.size >= frameRateWindow) frameTimestamps.removeLast()
             framesPerSecond = 1.0 / ((frameTimestamps.peekFirst() -
-                    frameTimestamps.peekLast())  / frameTimestamps.size.toDouble()) * 1000.0
+                    frameTimestamps.peekLast()) / frameTimestamps.size.toDouble()) * 1000.0
 
             // Calculate the average luma no more often than every second
             if (frameTimestamps.first - lastAnalyzedTimestamp >= TimeUnit.SECONDS.toMillis(1)) {
