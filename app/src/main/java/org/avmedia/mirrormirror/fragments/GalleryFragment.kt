@@ -17,10 +17,7 @@
 package org.avmedia.mirrormirror.fragments
 
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Matrix
+import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ShapeDrawable
 import android.graphics.drawable.shapes.RectShape
@@ -43,6 +40,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
+import com.github.kittinunf.fuel.core.ResponseDeserializable
 import org.avmedia.mirrormirror.BuildConfig
 import org.avmedia.mirrormirror.R
 import org.avmedia.mirrormirror.utils.FileUploader
@@ -87,6 +85,8 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // rotate image in file to portrait mode.
         rotateImage(mediaList[0])
+
+        // makeFrame(mediaList[0])
     }
 
     override fun onCreateView(
@@ -157,8 +157,10 @@ class GalleryFragment internal constructor() : Fragment() {
         val textViewAge: TextView = view.findViewById(R.id.myImageViewText)
         textViewAge.text = "Estimating Your Age..."
 
+        val file: File = mediaList[0]
         val successFunc: (msg: JSONObject) -> Unit = {
             println("Success...")
+
             val predictions: JSONArray? = it.get("predictions") as JSONArray
             if (predictions == null || predictions.length() == 0) {
                 textViewAge.text = "Cannot estimate age!"
@@ -167,7 +169,7 @@ class GalleryFragment internal constructor() : Fragment() {
                 val age: Integer? = prediction?.get("age_estimation") as Integer
                 textViewAge.text = "Estimaged Age: ${age}"
 
-                drawFrameAroundFace(mediaList[0])
+                makeFrame(mediaList[0])
             }
         }
 
@@ -177,7 +179,18 @@ class GalleryFragment internal constructor() : Fragment() {
         }
 
         val uploader = FileUploader(URL("http://max-facial-age-estimator.max.us-south.containers.appdomain.cloud"), successFunc, failFunc)
+
         uploader.upload(mediaList[0])
+    }
+
+    data class AgeInfo(val msg: JSONObject) {
+
+        class Deserializer : ResponseDeserializable<Array<AgeInfo>> {
+            override fun deserialize(content: String): Array<AgeInfo>? {
+                println("Hello")
+                return null
+            }
+        }
     }
 
     private fun drawFrameAroundFace(file: File): Unit {
@@ -199,13 +212,41 @@ class GalleryFragment internal constructor() : Fragment() {
         // draw rectangle shape to canvas
         shapeDrawable = ShapeDrawable(RectShape())
         shapeDrawable.setBounds(left, top, right, bottom)
-        shapeDrawable.setPadding(2,2,2,2)
+        shapeDrawable.setPadding(2, 2, 2, 2)
         //shapeDrawable.paint.color = Color.parseColor("#00000000")
         shapeDrawable.paint.color = Color.RED
         shapeDrawable.draw(canvas)
         view?.foreground = BitmapDrawable(resources, mutableBitmap)
     }
 
+    private fun makeFrame(file: File): Unit {
+        val bmp = drawFaceRectanglesOnBitmap(extractBitmap(file), Rect(100, 100, 200, 200))
+        val os: OutputStream = context!!.contentResolver.openOutputStream(file.toUri())
+        bmp.compress(Bitmap.CompressFormat.JPEG, 100, os)
+    }
+
+    private fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceRectangle: Rect): Bitmap {
+        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas: Canvas = Canvas(bitmap)
+        val paint: Paint = Paint()
+        paint.isAntiAlias = true
+        paint.style = Paint.Style.STROKE
+        paint.color = Color.RED
+        paint.strokeWidth = 10f
+        canvas.drawRect(
+                faceRectangle.left.toFloat(),
+                faceRectangle.top.toFloat(),
+                faceRectangle.left.toFloat() + faceRectangle.right.toFloat(),
+                faceRectangle.top.toFloat() + faceRectangle.bottom.toFloat(),
+                paint)
+        return bitmap
+    }
+
+    private fun extractBitmap(file: File): Bitmap {
+        var contentResolver = context!!.contentResolver
+        var bmp: Bitmap = MediaStore.Images.Media.getBitmap(contentResolver, file.toUri())
+        return bmp
+    }
 
     //////////////////////
     // INZ image rotation:

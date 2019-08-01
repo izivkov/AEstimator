@@ -5,8 +5,11 @@ import android.util.Log
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FileDataPart
 import com.github.kittinunf.fuel.core.FuelManager
+import com.github.kittinunf.fuel.core.ResponseDeserializable
+import com.github.kittinunf.fuel.coroutines.awaitObjectResult
 import com.github.kittinunf.fuel.json.responseJson
 import com.github.kittinunf.result.Result
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.File
 import java.net.URL
@@ -21,33 +24,28 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
     }
 
     open fun upload(file: File) {
-        val fileSize = file.length()
-        Fuel.upload("/model/predict")
-                .add {
-                    FileDataPart(file, "image", "testimage.jpg")
-                }
-
-                .progress { writtenBytes, totalBytes ->
-                    Log.v(TAG, "Upload: ${writtenBytes.toFloat() / totalBytes.toFloat()}")
-                }
-                .also { Log.d(TAG, it.toString()) }
-
-                .header(mutableMapOf(
-                        "Content-Length" to fileSize,
-                        "Accept-Encoding" to "gzip, deflate",
-                        "Accept" to "application/json"
-                ))
-
-                .responseJson { _, _, result ->
-
-                    when (result) {
-                        is Result.Success -> {
-                            successCallback.invoke(JSONObject(result.get().content))
-                        }
-                        is Result.Failure -> {
-                            failureCallback.invoke(JSONObject("""{"msg": "Error occured"}"""))
-                        }
+        runBlocking {
+            val fileSize = file.length()
+            Fuel.upload("/model/predict")
+                    .add {
+                        FileDataPart(file, "image", "testimage.jpg")
                     }
-                }
+
+                    .progress { writtenBytes, totalBytes ->
+                        Log.v(TAG, "Upload: ${writtenBytes.toFloat() / totalBytes.toFloat()}")
+                    }
+                    .also { Log.d(TAG, it.toString()) }
+
+                    .awaitObjectResult(AgeDeserializer).fold(
+                            { data -> successCallback.invoke(JSONObject(data))},
+                            { error -> failureCallback.invoke(JSONObject("""{"msg": "Error occured"}""")) }
+                    )
+        }
+
+    }
+
+    object AgeDeserializer : ResponseDeserializable<String> {
+        override fun deserialize(content: String) =
+                content
     }
 }
