@@ -16,15 +16,12 @@
 
 package org.avmedia.mirrormirror.fragments
 
+import android.content.Context
 import android.content.Intent
 import android.graphics.*
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.ShapeDrawable
-import android.graphics.drawable.shapes.RectShape
 import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,22 +30,20 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
-import androidx.core.net.toUri
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
-import com.github.kittinunf.fuel.core.ResponseDeserializable
 import org.avmedia.mirrormirror.BuildConfig
 import org.avmedia.mirrormirror.R
+import org.avmedia.mirrormirror.utils.BitmapExtractor
 import org.avmedia.mirrormirror.utils.FileUploader
 import org.avmedia.mirrormirror.utils.padWithDisplayCutout
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.OutputStream
 import java.net.URL
 
 val EXTENSION_WHITELIST = arrayOf("JPG")
@@ -183,46 +178,9 @@ class GalleryFragment internal constructor() : Fragment() {
         uploader.upload(mediaList[0])
     }
 
-    data class AgeInfo(val msg: JSONObject) {
-
-        class Deserializer : ResponseDeserializable<Array<AgeInfo>> {
-            override fun deserialize(content: String): Array<AgeInfo>? {
-                println("Hello")
-                return null
-            }
-        }
-    }
-
-    private fun drawFrameAroundFace(file: File): Unit {
-
-        var contentResolver = context!!.contentResolver
-        var bmp: Bitmap = MediaStore.Images.Media.getBitmap(contentResolver, file.toUri())
-
-        var mutableBitmap: Bitmap = bmp.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas: Canvas = Canvas(mutableBitmap)
-
-        var shapeDrawable: ShapeDrawable
-
-        // rectangle positions
-        var left = 100
-        var top = 100
-        var right = 200
-        var bottom = 200
-
-        // draw rectangle shape to canvas
-        shapeDrawable = ShapeDrawable(RectShape())
-        shapeDrawable.setBounds(left, top, right, bottom)
-        shapeDrawable.setPadding(2, 2, 2, 2)
-        //shapeDrawable.paint.color = Color.parseColor("#00000000")
-        shapeDrawable.paint.color = Color.RED
-        shapeDrawable.draw(canvas)
-        view?.foreground = BitmapDrawable(resources, mutableBitmap)
-    }
-
     private fun makeFrame(file: File): Unit {
-        val bmp = drawFaceRectanglesOnBitmap(extractBitmap(file), Rect(100, 100, 200, 200))
-        val os: OutputStream = context!!.contentResolver.openOutputStream(file.toUri())
-        bmp.compress(Bitmap.CompressFormat.JPEG, 100, os)
+        val bmp = drawFaceRectanglesOnBitmap(BitmapExtractor.getBitmapFromFile(file, context as Context), Rect(100, 100, 200, 200))
+        BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
     }
 
     private fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceRectangle: Rect): Bitmap {
@@ -242,21 +200,12 @@ class GalleryFragment internal constructor() : Fragment() {
         return bitmap
     }
 
-    private fun extractBitmap(file: File): Bitmap {
-        var contentResolver = context!!.contentResolver
-        var bmp: Bitmap = MediaStore.Images.Media.getBitmap(contentResolver, file.toUri())
-        return bmp
-    }
-
     //////////////////////
     // INZ image rotation:
     //////////////////////
     private fun rotateImage(file: File) {
-        var contentResolver = context!!.contentResolver
-        val bmIn: Bitmap = MediaStore.Images.Media.getBitmap(contentResolver, file.toUri())
-        val bmp: Bitmap = pictureTurn(bmIn, file.absolutePath)
-        val os: OutputStream = context!!.contentResolver.openOutputStream(file.toUri())
-        bmp.compress(Bitmap.CompressFormat.JPEG, 100, os)
+        val bmp: Bitmap = pictureTurn(BitmapExtractor.getBitmapFromFile(file, context as Context), file.absolutePath)
+        BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
     }
 
     private fun pictureTurn(img: Bitmap, fileName: String): Bitmap {
