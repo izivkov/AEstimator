@@ -19,9 +19,11 @@ package org.avmedia.mirrormirror.fragments
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
+import android.graphics.Color.*
 import android.media.MediaScannerConnection
 import android.os.Build
 import android.os.Bundle
+import android.text.TextPaint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -150,7 +152,6 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // INZ
         val textViewAge: TextView = view.findViewById(R.id.myImageViewText)
-        textViewAge.text = "Estimating Your Age..."
 
         val file: File = mediaList[0]
         val successFunc: (msg: JSONObject) -> Unit = {
@@ -160,11 +161,22 @@ class GalleryFragment internal constructor() : Fragment() {
             if (predictions == null || predictions.length() == 0) {
                 textViewAge.text = "Cannot estimate age!"
             } else {
-                val prediction: JSONObject? = predictions[0] as JSONObject
-                val age: Integer? = prediction?.get("age_estimation") as Integer
-                textViewAge.text = "Estimaged Age: ${age}"
+                for (i in 0..(predictions.length() - 1)) {
+                    val prediction = predictions.getJSONObject(i)
 
-                makeFrame(mediaList[0])
+                    val age: Integer = prediction?.get("age_estimation") as Integer
+
+                    val detectionBox: JSONArray = prediction.get("detection_box") as JSONArray
+
+                    // this seems to be the order the data comes in
+                    val faceFrame: ImageBox = ImageBox(
+                            detectionBox.get(1) as Double,
+                            detectionBox.get(0) as Double,
+                            detectionBox.get(3) as Double,
+                            detectionBox.get(2) as Double)
+
+                    makeFrame(mediaList[0], faceFrame, age)
+                }
             }
         }
 
@@ -178,25 +190,32 @@ class GalleryFragment internal constructor() : Fragment() {
         uploader.upload(mediaList[0])
     }
 
-    private fun makeFrame(file: File): Unit {
-        val bmp = drawFaceRectanglesOnBitmap(BitmapExtractor.getBitmapFromFile(file, context as Context), Rect(100, 100, 200, 200))
+    private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Unit {
+        val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
+        val bmp = drawFaceRectanglesOnBitmap(imgBitmap, faceFrame, age)
         BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
     }
 
-    private fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceRectangle: Rect): Bitmap {
+    private fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, age: Integer): Bitmap {
         var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas: Canvas = Canvas(bitmap)
         val paint: Paint = Paint()
         paint.isAntiAlias = true
         paint.style = Paint.Style.STROKE
-        paint.color = Color.RED
-        paint.strokeWidth = 10f
+        paint.color = YELLOW
+        paint.strokeWidth = 2f
         canvas.drawRect(
-                faceRectangle.left.toFloat(),
-                faceRectangle.top.toFloat(),
-                faceRectangle.left.toFloat() + faceRectangle.right.toFloat(),
-                faceRectangle.top.toFloat() + faceRectangle.bottom.toFloat(),
+                faceFrame.scale(canvas.width, canvas.height).toRect(),
                 paint)
+
+        // Draw text
+        val textPaint = TextPaint()
+        textPaint.color = RED
+        textPaint.setTextSize(22f)
+        textPaint.strokeWidth = 1f
+
+        canvas.drawText(age.toString(), (faceFrame.x1 * canvas.width + 10).toFloat(), (faceFrame.y1 * canvas.height).toFloat(), textPaint);
+
         return bitmap
     }
 
@@ -228,7 +247,7 @@ class GalleryFragment internal constructor() : Fragment() {
         mat?.postRotate(orientation)
 
         // mirror the image
-        mat?.postScale(-1f, 1f, img.width / 2f, img.height / 2f)
+         mat?.postScale(-1f, 1f, img.width / 2f, img.height / 2f)
 
         return scaleTo(Bitmap.createBitmap(img, 0, 0, img.width,
                 img.height, mat, false), 720)
@@ -248,5 +267,14 @@ class GalleryFragment internal constructor() : Fragment() {
         }
 
         return Bitmap.createScaledBitmap(image, width.toInt(), height.toInt(), true)
+    }
+
+    data class ImageBox(val x1: Double, val y1: Double, val x2: Double, val y2: Double) {
+        open fun scale (factorW: Int, factorH: Int): ImageBox {
+            return ImageBox (x1*factorW, y1*factorH, x2*factorW, y2*factorH)
+        }
+        open fun toRect (): Rect {
+            return Rect (x1.toInt(), y1.toInt(), x2.toInt(), y2.toInt())
+        }
     }
 }
