@@ -7,8 +7,6 @@ import com.github.kittinunf.fuel.core.FileDataPart
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.ResponseDeserializable
 import com.github.kittinunf.fuel.coroutines.awaitObjectResult
-import com.github.kittinunf.fuel.json.responseJson
-import com.github.kittinunf.result.Result
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.File
@@ -38,7 +36,7 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
 
                     .awaitObjectResult(AgeDeserializer).fold(
                             { data -> successCallback.invoke(JSONObject(data))},
-                            { error -> failureCallback.invoke(JSONObject("""{"msg": "Error occured"}""")) }
+                            { error -> failureCallback.invoke(JSONObject("""{"msg": "Something went wrong!"}""")) }
                     )
         }
 

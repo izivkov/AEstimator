@@ -314,6 +314,11 @@ class CameraFragment : Fragment() {
             // Get a stable reference of the modifiable image capture use case
             imageCapture?.let { imageCapture ->
 
+                // Delete all files here
+                if (outputDirectory.isDirectory())
+                    for (child: File in outputDirectory.listFiles())
+                        child.delete()
+
                 // Create output file to hold the image
                 val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
 

@@ -19,8 +19,8 @@ package org.avmedia.mirrormirror.fragments
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
-import android.graphics.Color.*
-import android.media.MediaScannerConnection
+import android.graphics.Color.RED
+import android.graphics.Color.YELLOW
 import android.os.Build
 import android.os.Bundle
 import android.text.TextPaint
@@ -36,6 +36,7 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
+import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
 import org.avmedia.mirrormirror.BuildConfig
@@ -56,12 +57,13 @@ class GalleryFragment internal constructor() : Fragment() {
     /** AndroidX navigation arguments */
     private val args: GalleryFragmentArgs by navArgs()
 
-    private lateinit var mediaList: MutableList<File>
+    @Volatile
+    private lateinit var imageFile: File
 
     /** Adapter class used to present a fragment containing one photo or video as a page */
     inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
-        override fun getCount(): Int = mediaList.size
-        override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
+        override fun getCount(): Int = 1
+        override fun getItem(position: Int): Fragment = PhotoFragment.create(imageFile)
         override fun getItemPosition(obj: Any): Int = POSITION_NONE
     }
 
@@ -76,14 +78,12 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // Walk through all files in the root directory
         // We reverse the order of the list to present the last photos first
-        mediaList = rootDirectory.listFiles { file ->
+        imageFile = rootDirectory.listFiles { file ->
             EXTENSION_WHITELIST.contains(file.extension.toUpperCase())
-        }.sorted().reversed().toMutableList()
+        }.sorted().reversed().toMutableList()[0]
 
         // rotate image in file to portrait mode.
-        rotateImage(mediaList[0])
-
-        // makeFrame(mediaList[0])
+        rotateImage(imageFile)
     }
 
     override fun onCreateView(
@@ -95,7 +95,6 @@ class GalleryFragment internal constructor() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Populate the ViewPager and implement a cache of two media items
         val mediaViewPager = view.findViewById<ViewPager>(org.avmedia.mirrormirror.R.id.photo_view_pager).apply {
             offscreenPageLimit = 0 // INZ was 2
             adapter = MediaPagerAdapter(childFragmentManager)
@@ -110,40 +109,32 @@ class GalleryFragment internal constructor() : Fragment() {
         // Handle back button press
         view.findViewById<ImageButton>(org.avmedia.mirrormirror.R.id.back_button).setOnClickListener {
 
-            // delete all left-over images.
-            mediaList.forEach {
-                it.delete()
+            // fragmentManager?.popBackStack()
 
-                // Send relevant broadcast to notify other apps of deletion
-                MediaScannerConnection.scanFile(
-                        view.context, arrayOf(it.absolutePath), null, null)
-            }
+            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
+                    GalleryFragmentDirections.actionGalleryToCamera())
 
-            // Notify our view pager
-            mediaViewPager.adapter?.notifyDataSetChanged()
-
-            fragmentManager?.popBackStack()
         }
 
         // Handle share button press
         view.findViewById<ImageButton>(R.id.share_button).setOnClickListener {
             // Make sure that we have a file to share
-            mediaList.getOrNull(mediaViewPager.currentItem)?.let { mediaFile ->
 
-                // Create a sharing intent
-                val intent = Intent().apply {
-                    // Infer media type from file extension
-                    val mediaType = MimeTypeMap.getSingleton()
-                            .getMimeTypeFromExtension(mediaFile.extension)
-                    // Get URI from our FileProvider implementation
-                    val uri = FileProvider.getUriForFile(
-                            view.context, BuildConfig.APPLICATION_ID + ".provider", mediaFile)
-                    // Set the appropriate intent extra, type, action and flags
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    type = mediaType
-                    action = Intent.ACTION_SEND
-                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-                }
+            val intent = Intent()
+
+            // Create a sharing intent
+            intent.apply {
+                // Infer media type from file extension
+                val mediaType = MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(imageFile.extension)
+                // Get URI from our FileProvider implementation
+                val uri = FileProvider.getUriForFile(
+                        view.context, BuildConfig.APPLICATION_ID + ".provider", imageFile)
+                // Set the appropriate intent extra, type, action and flags
+                putExtra(Intent.EXTRA_STREAM, uri)
+                type = mediaType
+                action = Intent.ACTION_SEND
+                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
 
                 // Launch the intent letting the user choose which app to share with
                 startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
@@ -153,13 +144,13 @@ class GalleryFragment internal constructor() : Fragment() {
         // INZ
         val textViewAge: TextView = view.findViewById(R.id.myImageViewText)
 
-        val file: File = mediaList[0]
+        val file: File = imageFile
         val successFunc: (msg: JSONObject) -> Unit = {
             println("Success...")
 
             val predictions: JSONArray? = it.get("predictions") as JSONArray
             if (predictions == null || predictions.length() == 0) {
-                textViewAge.text = "Cannot estimate age!"
+                textViewAge.text = "Could not recognise face"
             } else {
                 for (i in 0..(predictions.length() - 1)) {
                     val prediction = predictions.getJSONObject(i)
@@ -175,19 +166,22 @@ class GalleryFragment internal constructor() : Fragment() {
                             detectionBox.get(3) as Double,
                             detectionBox.get(2) as Double)
 
-                    makeFrame(mediaList[0], faceFrame, age)
+                    makeFrame(imageFile, faceFrame, age)
+
+                    view.invalidate()
+                    view.refreshDrawableState()
                 }
             }
         }
 
         val failFunc: (msg: JSONObject) -> Unit = {
             println("Failed...")
-            textViewAge.text = "Could not estimate age!"
+            textViewAge.text = it.getString("msg")
         }
 
         val uploader = FileUploader(URL("http://max-facial-age-estimator.max.us-south.containers.appdomain.cloud"), successFunc, failFunc)
 
-        uploader.upload(mediaList[0])
+        uploader.upload(imageFile)
     }
 
     private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Unit {
@@ -211,10 +205,10 @@ class GalleryFragment internal constructor() : Fragment() {
         // Draw text
         val textPaint = TextPaint()
         textPaint.color = RED
-        textPaint.setTextSize(22f)
+        textPaint.textSize = 22f
         textPaint.strokeWidth = 1f
 
-        canvas.drawText(age.toString(), (faceFrame.x1 * canvas.width + 10).toFloat(), (faceFrame.y1 * canvas.height).toFloat(), textPaint);
+        canvas.drawText(age.toString(), (faceFrame.x1 * canvas.width + 10).toFloat(), (faceFrame.y1 * canvas.height).toFloat(), textPaint)
 
         return bitmap
     }
@@ -247,7 +241,7 @@ class GalleryFragment internal constructor() : Fragment() {
         mat?.postRotate(orientation)
 
         // mirror the image
-         mat?.postScale(-1f, 1f, img.width / 2f, img.height / 2f)
+        mat?.postScale(-1f, 1f, img.width / 2f, img.height / 2f)
 
         return scaleTo(Bitmap.createBitmap(img, 0, 0, img.width,
                 img.height, mat, false), 720)
@@ -270,11 +264,12 @@ class GalleryFragment internal constructor() : Fragment() {
     }
 
     data class ImageBox(val x1: Double, val y1: Double, val x2: Double, val y2: Double) {
-        open fun scale (factorW: Int, factorH: Int): ImageBox {
-            return ImageBox (x1*factorW, y1*factorH, x2*factorW, y2*factorH)
+        open fun scale(factorW: Int, factorH: Int): ImageBox {
+            return ImageBox(x1 * factorW, y1 * factorH, x2 * factorW, y2 * factorH)
         }
-        open fun toRect (): Rect {
-            return Rect (x1.toInt(), y1.toInt(), x2.toInt(), y2.toInt())
+
+        open fun toRect(): Rect {
+            return Rect(x1.toInt(), y1.toInt(), x2.toInt(), y2.toInt())
         }
     }
 }
