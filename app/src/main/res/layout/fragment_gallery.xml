@@ -16,9 +16,9 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/gallery_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/gallery_layout"
     android:background="@android:color/black">
 
     <androidx.viewpager.widget.ViewPager
@@ -39,7 +39,8 @@
             android:background="#80000000"
             android:minHeight="?attr/actionBarSize"
             android:theme="?attr/actionBarTheme"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintTop_toTopOf="parent"
+            tools:layout_editor_absoluteX="144dp">
 
             <ImageButton
                 android:id="@+id/back_button"
@@ -53,16 +54,14 @@
 
             <ImageButton
                 android:id="@+id/share_button"
-                android:layout_width="match_parent"
+                android:layout_width="32dp"
                 android:layout_height="@dimen/round_button_small"
+                android:layout_gravity="right"
                 android:layout_marginEnd="20dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/share_button_alt"
                 android:scaleType="fitEnd"
-                android:visibility="visible"
-                app:srcCompat="@drawable/ic_share"
-                tools:layout_editor_absoluteX="48dp"
-                tools:layout_editor_absoluteY="9dp" />
+                app:srcCompat="@drawable/ic_share" />
         </androidx.appcompat.widget.Toolbar>
 
         <androidx.appcompat.widget.Toolbar
@@ -90,5 +89,14 @@
                 app:layout_constraintEnd_toEndOf="parent" />
 
         </androidx.appcompat.widget.Toolbar>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

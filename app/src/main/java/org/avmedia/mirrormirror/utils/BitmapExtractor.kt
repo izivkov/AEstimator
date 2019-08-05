@@ -19,6 +19,7 @@ class BitmapExtractor {
         fun setBitmapToFile(file : File, bitmap: Bitmap, context: Context): Unit {
             val os: OutputStream = context!!.contentResolver.openOutputStream(file.toUri())
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os)
+            os.flush()
         }
     }
 }

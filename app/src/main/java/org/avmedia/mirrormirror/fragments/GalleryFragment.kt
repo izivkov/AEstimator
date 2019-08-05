@@ -29,6 +29,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
@@ -36,7 +37,6 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
-import androidx.navigation.Navigation
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
 import org.avmedia.mirrormirror.BuildConfig
@@ -95,6 +95,8 @@ class GalleryFragment internal constructor() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        showProgressBar(view)
+
         val mediaViewPager = view.findViewById<ViewPager>(org.avmedia.mirrormirror.R.id.photo_view_pager).apply {
             offscreenPageLimit = 0 // INZ was 2
             adapter = MediaPagerAdapter(childFragmentManager)
@@ -109,11 +111,7 @@ class GalleryFragment internal constructor() : Fragment() {
         // Handle back button press
         view.findViewById<ImageButton>(org.avmedia.mirrormirror.R.id.back_button).setOnClickListener {
 
-            // fragmentManager?.popBackStack()
-
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                    GalleryFragmentDirections.actionGalleryToCamera())
-
+            fragmentManager?.popBackStack()
         }
 
         // Handle share button press
@@ -141,7 +139,6 @@ class GalleryFragment internal constructor() : Fragment() {
             }
         }
 
-        // INZ
         val textViewAge: TextView = view.findViewById(R.id.myImageViewText)
 
         val file: File = imageFile
@@ -167,16 +164,15 @@ class GalleryFragment internal constructor() : Fragment() {
                             detectionBox.get(2) as Double)
 
                     makeFrame(imageFile, faceFrame, age)
-
-                    view.invalidate()
-                    view.refreshDrawableState()
                 }
             }
+            hideProgressBar(view)
         }
 
         val failFunc: (msg: JSONObject) -> Unit = {
             println("Failed...")
             textViewAge.text = it.getString("msg")
+            hideProgressBar(view)
         }
 
         val uploader = FileUploader(URL("http://max-facial-age-estimator.max.us-south.containers.appdomain.cloud"), successFunc, failFunc)
@@ -186,55 +182,65 @@ class GalleryFragment internal constructor() : Fragment() {
 
     private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Unit {
         val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
-        val bmp = drawFaceRectanglesOnBitmap(imgBitmap, faceFrame, age)
+        val bmpWithFrame = drawFaceRectanglesOnBitmap(imgBitmap, faceFrame)
+        val bmp = drawAgeOnBitmap(bmpWithFrame, faceFrame, age)
         BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
     }
 
-    private fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, age: Integer): Bitmap {
+    open fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {
         var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas: Canvas = Canvas(bitmap)
         val paint: Paint = Paint()
         paint.isAntiAlias = true
         paint.style = Paint.Style.STROKE
         paint.color = YELLOW
-        paint.strokeWidth = 2f
+        paint.strokeWidth = 1f
         canvas.drawRect(
                 faceFrame.scale(canvas.width, canvas.height).toRect(),
                 paint)
 
+        return bitmap
+    }
+
+    private fun drawAgeOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, age: Integer): Bitmap {
+        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas: Canvas = Canvas(bitmap)
+        val ageStr = age.toString()
+
         // Draw text
+        val fm: Paint.FontMetrics = Paint.FontMetrics()
         val textPaint = TextPaint()
         textPaint.color = RED
-        textPaint.textSize = 22f
+        textPaint.textSize = 24f
         textPaint.strokeWidth = 1f
 
-        canvas.drawText(age.toString(), (faceFrame.x1 * canvas.width + 10).toFloat(), (faceFrame.y1 * canvas.height).toFloat(), textPaint)
+        textPaint.getFontMetrics(fm)
+        val margin: Int = 0
+
+        val bkPain = Paint()
+        bkPain.color = Color.YELLOW
+        val x = (faceFrame.x1 * canvas.width).toFloat()
+        val y = (faceFrame.y1 * canvas.height).toFloat()
+        canvas.drawRect((x - margin), y + fm.top - margin,
+                x + textPaint.measureText(ageStr) + margin, y + fm.bottom
+                + margin, bkPain)
+
+        canvas.drawText(ageStr, x, y, textPaint)
 
         return bitmap
     }
 
-    //////////////////////
-    // INZ image rotation:
-    //////////////////////
     private fun rotateImage(file: File) {
         val bmp: Bitmap = pictureTurn(BitmapExtractor.getBitmapFromFile(file, context as Context), file.absolutePath)
         BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
     }
 
+    // Rotate the image because the camera takes it in landscape mode.
     private fun pictureTurn(img: Bitmap, fileName: String): Bitmap {
 
         val exifInterface = ExifInterface(fileName)
 
         val exifR: Int = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
-//        val orientation: Float =
-//                when (exifR) {
-//                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-//                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-//                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-//                    else -> 0f
-//                }
-
-        // the above does not work, and always gives 0 deg orientation, so we just harcode it 270 deg.
         val orientation = 270f
 
         val mat: Matrix? = Matrix()
@@ -270,6 +276,58 @@ class GalleryFragment internal constructor() : Fragment() {
 
         open fun toRect(): Rect {
             return Rect(x1.toInt(), y1.toInt(), x2.toInt(), y2.toInt())
+        }
+    }
+
+    private fun showProgressBar (view:View) {
+        val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
+        if (progressBar != null) {
+            progressBar.visibility = View.VISIBLE
+        }
+
+    }
+
+    private fun hideProgressBar (view:View) {
+        val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
+        if (progressBar != null) {
+            progressBar.visibility = View.GONE
+        }
+    }
+
+    // code related to flashing frame
+    private enum class FlashState { ON, OFF }
+
+    private class FlashPatternCycle(_state: FlashState, _duration: Long) {
+
+        var state: FlashState
+        var duration: Long
+
+        init {
+            this.state = _state
+            this.duration = _duration
+        }
+    }
+
+    private inner class FrameFlasher {
+
+        open fun flashFrame(file: File, context: Context, faceFrame: ImageBox, flashPattern: List<FlashPatternCycle>): Bitmap {
+
+            val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context)
+            var retBitmap: Bitmap = origBitmap
+
+            for (flashCycle in flashPattern) {
+                if (flashCycle.state == FlashState.ON) {
+                    val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context)
+                    retBitmap = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
+                    BitmapExtractor.setBitmapToFile(file, retBitmap, context)
+                    //delay(flashCycle.duration)
+
+                } else {
+                    BitmapExtractor.setBitmapToFile(file, origBitmap, context)
+                    //delay(flashCycle.duration)
+                }
+            }
+            return retBitmap
         }
     }
 }
