@@ -14,6 +14,8 @@ import java.net.URL
 
 open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> Unit, val failureCallback: (msg: JSONObject) -> Unit) {
 
+    var progressCallback: (Int) -> Unit = {}
+
     init {
         FuelManager.instance.apply {
             basePath = baseUrl.toString()
@@ -30,7 +32,9 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
                     }
 
                     .progress { writtenBytes, totalBytes ->
-                        Log.v(TAG, "Upload: ${writtenBytes.toFloat() / totalBytes.toFloat()}")
+                        val progress = writtenBytes.toFloat() / totalBytes.toFloat()
+                        Log.v(TAG, "Upload: ${progress}")
+                        progressCallback.invoke((100*progress).toInt())
                     }
                     .also { Log.d(TAG, it.toString()) }
 
@@ -45,5 +49,10 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
     object AgeDeserializer : ResponseDeserializable<String> {
         override fun deserialize(content: String) =
                 content
+    }
+
+    open fun setProgressListener (_progressCallback: (progress: Int) -> Unit) {
+        this.progressCallback = _progressCallback
+
     }
 }

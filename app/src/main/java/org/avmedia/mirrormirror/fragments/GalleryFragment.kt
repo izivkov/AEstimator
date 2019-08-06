@@ -23,6 +23,7 @@ import android.graphics.Color.RED
 import android.graphics.Color.YELLOW
 import android.os.Build
 import android.os.Bundle
+import android.provider.Contacts
 import android.text.TextPaint
 import android.view.LayoutInflater
 import android.view.View
@@ -39,10 +40,15 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.avmedia.mirrormirror.BuildConfig
+import org.avmedia.mirrormirror.MainActivity
 import org.avmedia.mirrormirror.R
 import org.avmedia.mirrormirror.utils.BitmapExtractor
 import org.avmedia.mirrormirror.utils.FileUploader
+import org.avmedia.mirrormirror.utils.ProgressBarContainer
 import org.avmedia.mirrormirror.utils.padWithDisplayCutout
 import org.json.JSONArray
 import org.json.JSONObject
@@ -56,8 +62,7 @@ class GalleryFragment internal constructor() : Fragment() {
 
     /** AndroidX navigation arguments */
     private val args: GalleryFragmentArgs by navArgs()
-
-    @Volatile
+    private lateinit var progressBarContainer: ProgressBarContainer
     private lateinit var imageFile: File
 
     /** Adapter class used to present a fragment containing one photo or video as a page */
@@ -95,7 +100,9 @@ class GalleryFragment internal constructor() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        showProgressBar(view)
+        val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
+        progressBarContainer = ProgressBarContainer(progressBar)
+        progressBarContainer.show()
 
         val mediaViewPager = view.findViewById<ViewPager>(org.avmedia.mirrormirror.R.id.photo_view_pager).apply {
             offscreenPageLimit = 0 // INZ was 2
@@ -110,7 +117,6 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // Handle back button press
         view.findViewById<ImageButton>(org.avmedia.mirrormirror.R.id.back_button).setOnClickListener {
-
             fragmentManager?.popBackStack()
         }
 
@@ -166,17 +172,18 @@ class GalleryFragment internal constructor() : Fragment() {
                     makeFrame(imageFile, faceFrame, age)
                 }
             }
-            hideProgressBar(view)
+            progressBarContainer.hide()
         }
 
         val failFunc: (msg: JSONObject) -> Unit = {
             println("Failed...")
             textViewAge.text = it.getString("msg")
-            hideProgressBar(view)
+            progressBarContainer.hide()
         }
 
         val uploader = FileUploader(URL("http://max-facial-age-estimator.max.us-south.containers.appdomain.cloud"), successFunc, failFunc)
 
+        uploader.setProgressListener (progressBarContainer.showProgress)
         uploader.upload(imageFile)
     }
 
@@ -276,21 +283,6 @@ class GalleryFragment internal constructor() : Fragment() {
 
         open fun toRect(): Rect {
             return Rect(x1.toInt(), y1.toInt(), x2.toInt(), y2.toInt())
-        }
-    }
-
-    private fun showProgressBar (view:View) {
-        val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
-        if (progressBar != null) {
-            progressBar.visibility = View.VISIBLE
-        }
-
-    }
-
-    private fun hideProgressBar (view:View) {
-        val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
-        if (progressBar != null) {
-            progressBar.visibility = View.GONE
         }
     }
 
