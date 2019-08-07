@@ -12,7 +12,8 @@ class BitmapExtractor {
         @JvmStatic
         fun getBitmapFromFile(file : File, context: Context): Bitmap {
             var contentResolver = context!!.contentResolver
-            return MediaStore.Images.Media.getBitmap(contentResolver, file.toUri())
+            val bmp: Bitmap = MediaStore.Images.Media.getBitmap(contentResolver, file.toUri())
+            return bmp
         }
 
         @JvmStatic

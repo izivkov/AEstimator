@@ -19,11 +19,9 @@ package org.avmedia.mirrormirror.fragments
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
-import android.graphics.Color.RED
 import android.graphics.Color.YELLOW
 import android.os.Build
 import android.os.Bundle
-import android.provider.Contacts
 import android.text.TextPaint
 import android.view.LayoutInflater
 import android.view.View
@@ -40,16 +38,10 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.navigation.fragment.navArgs
 import androidx.viewpager.widget.ViewPager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import androidx.work.WorkManager
 import org.avmedia.mirrormirror.BuildConfig
-import org.avmedia.mirrormirror.MainActivity
 import org.avmedia.mirrormirror.R
-import org.avmedia.mirrormirror.utils.BitmapExtractor
-import org.avmedia.mirrormirror.utils.FileUploader
-import org.avmedia.mirrormirror.utils.ProgressBarContainer
-import org.avmedia.mirrormirror.utils.padWithDisplayCutout
+import org.avmedia.mirrormirror.utils.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -64,12 +56,14 @@ class GalleryFragment internal constructor() : Fragment() {
     private val args: GalleryFragmentArgs by navArgs()
     private lateinit var progressBarContainer: ProgressBarContainer
     private lateinit var imageFile: File
+    private lateinit var workManager: WorkManager
 
     /** Adapter class used to present a fragment containing one photo or video as a page */
     inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
         override fun getCount(): Int = 1
-        override fun getItem(position: Int): Fragment = PhotoFragment.create(imageFile)
-        override fun getItemPosition(obj: Any): Int = POSITION_NONE
+        override fun getItem(position: Int): Fragment {
+            return PhotoFragment.create(imageFile)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,16 +89,19 @@ class GalleryFragment internal constructor() : Fragment() {
             inflater: LayoutInflater,
             container: ViewGroup?,
             savedInstanceState: Bundle?
-    ): View? = inflater.inflate(org.avmedia.mirrormirror.R.layout.fragment_gallery, container, false)
+    ): View? {
+        return inflater.inflate(org.avmedia.mirrormirror.R.layout.fragment_gallery, container, false)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        workManager = WorkManager.getInstance(context as Context)
+
         val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
         progressBarContainer = ProgressBarContainer(progressBar)
-        progressBarContainer.show()
 
-        val mediaViewPager = view.findViewById<ViewPager>(org.avmedia.mirrormirror.R.id.photo_view_pager).apply {
+        view.findViewById<ViewPager>(org.avmedia.mirrormirror.R.id.photo_view_pager).apply {
             offscreenPageLimit = 0 // INZ was 2
             adapter = MediaPagerAdapter(childFragmentManager)
         }
@@ -144,16 +141,23 @@ class GalleryFragment internal constructor() : Fragment() {
                 startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
             }
         }
+    }
 
-        val textViewAge: TextView = view.findViewById(R.id.myImageViewText)
+    override fun onResume() {
+        super.onResume()
 
-        val file: File = imageFile
+        startUploader(view)
+    }
+
+    private fun startUploader(view: View?) {
+        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
+
         val successFunc: (msg: JSONObject) -> Unit = {
             println("Success...")
 
             val predictions: JSONArray? = it.get("predictions") as JSONArray
             if (predictions == null || predictions.length() == 0) {
-                textViewAge.text = "Could not recognise face"
+                textViewAge?.text = "Could not recognise face"
             } else {
                 for (i in 0..(predictions.length() - 1)) {
                     val prediction = predictions.getJSONObject(i)
@@ -177,17 +181,18 @@ class GalleryFragment internal constructor() : Fragment() {
 
         val failFunc: (msg: JSONObject) -> Unit = {
             println("Failed...")
-            textViewAge.text = it.getString("msg")
+            textViewAge?.text = it.getString("msg")
             progressBarContainer.hide()
         }
 
         val uploader = FileUploader(URL("http://max-facial-age-estimator.max.us-south.containers.appdomain.cloud"), successFunc, failFunc)
 
-        uploader.setProgressListener (progressBarContainer.showProgress)
+        uploader.setProgressListener(progressBarContainer.showProgress)
         uploader.upload(imageFile)
     }
 
     private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Unit {
+
         val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
         val bmpWithFrame = drawFaceRectanglesOnBitmap(imgBitmap, faceFrame)
         val bmp = drawAgeOnBitmap(bmpWithFrame, faceFrame, age)
@@ -214,24 +219,22 @@ class GalleryFragment internal constructor() : Fragment() {
         val canvas: Canvas = Canvas(bitmap)
         val ageStr = age.toString()
 
+        val x = (faceFrame.x1 * canvas.width).toFloat()
+        val y = (faceFrame.y1 * canvas.height).toFloat()
+
         // Draw text
         val fm: Paint.FontMetrics = Paint.FontMetrics()
         val textPaint = TextPaint()
-        textPaint.color = RED
         textPaint.textSize = 24f
-        textPaint.strokeWidth = 1f
 
-        textPaint.getFontMetrics(fm)
-        val margin: Int = 0
+        textPaint.color = Color.YELLOW
+        textPaint.style = Paint.Style.STROKE
+        textPaint.strokeWidth = 4f
+        canvas.drawText(ageStr, x, y, textPaint)
 
-        val bkPain = Paint()
-        bkPain.color = Color.YELLOW
-        val x = (faceFrame.x1 * canvas.width).toFloat()
-        val y = (faceFrame.y1 * canvas.height).toFloat()
-        canvas.drawRect((x - margin), y + fm.top - margin,
-                x + textPaint.measureText(ageStr) + margin, y + fm.bottom
-                + margin, bkPain)
-
+        textPaint.color = Color.RED
+        textPaint.style = Paint.Style.STROKE
+        textPaint.strokeWidth = 2f
         canvas.drawText(ageStr, x, y, textPaint)
 
         return bitmap
@@ -274,16 +277,6 @@ class GalleryFragment internal constructor() : Fragment() {
         }
 
         return Bitmap.createScaledBitmap(image, width.toInt(), height.toInt(), true)
-    }
-
-    data class ImageBox(val x1: Double, val y1: Double, val x2: Double, val y2: Double) {
-        open fun scale(factorW: Int, factorH: Int): ImageBox {
-            return ImageBox(x1 * factorW, y1 * factorH, x2 * factorW, y2 * factorH)
-        }
-
-        open fun toRect(): Rect {
-            return Rect(x1.toInt(), y1.toInt(), x2.toInt(), y2.toInt())
-        }
     }
 
     // code related to flashing frame

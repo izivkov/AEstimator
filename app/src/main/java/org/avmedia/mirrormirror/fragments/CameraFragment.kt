@@ -57,6 +57,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.avmedia.mirrormirror.KEY_EVENT_ACTION
@@ -188,6 +189,7 @@ class CameraFragment : Fragment() {
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
                     CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
 
+            // NavController.OnDestinationChangedListener()
         }
     }
 
@@ -263,7 +265,6 @@ class CameraFragment : Fragment() {
             // during the lifecycle of this use case
 
             setTargetRotation(viewFinder.display.rotation)
-            // setTargetRotation(Surface.ROTATION_0)
 
         }.build()
 
