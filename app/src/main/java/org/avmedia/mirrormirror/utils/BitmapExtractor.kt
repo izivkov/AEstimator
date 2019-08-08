@@ -17,10 +17,11 @@ class BitmapExtractor {
         }
 
         @JvmStatic
-        fun setBitmapToFile(file : File, bitmap: Bitmap, context: Context): Unit {
+        fun setBitmapToFile(file : File, bitmap: Bitmap, context: Context): Bitmap {
             val os: OutputStream = context!!.contentResolver.openOutputStream(file.toUri())
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os)
             os.flush()
+            return bitmap
         }
     }
 }

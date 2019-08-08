@@ -25,7 +25,7 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
         }
     }
 
-    open fun upload(file: File) {
+    open fun upload_XXX(file: File) {
         runBlocking {
             val fileSize = file.length()
             Fuel.upload("/model/predict")
@@ -51,7 +51,7 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
         }
     }
 
-    open fun upload_XXX(file: File) {
+    open fun upload(file: File) {
         val fileSize = file.length()
         Fuel.upload("/model/predict")
                 .add {

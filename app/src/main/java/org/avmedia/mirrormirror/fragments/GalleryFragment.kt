@@ -28,16 +28,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.MimeTypeMap
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
-import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.navigation.fragment.navArgs
-import androidx.viewpager.widget.ViewPager
 import androidx.work.WorkManager
 import org.avmedia.mirrormirror.BuildConfig
 import org.avmedia.mirrormirror.R
@@ -45,6 +43,7 @@ import org.avmedia.mirrormirror.utils.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.InputStream
 import java.net.URL
 
 val EXTENSION_WHITELIST = arrayOf("JPG")
@@ -56,15 +55,6 @@ class GalleryFragment internal constructor() : Fragment() {
     private val args: GalleryFragmentArgs by navArgs()
     private lateinit var progressBarContainer: ProgressBarContainer
     private lateinit var imageFile: File
-    private lateinit var workManager: WorkManager
-
-    /** Adapter class used to present a fragment containing one photo or video as a page */
-    inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm) {
-        override fun getCount(): Int = 1
-        override fun getItem(position: Int): Fragment {
-            return PhotoFragment.create(imageFile)
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -96,15 +86,8 @@ class GalleryFragment internal constructor() : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        workManager = WorkManager.getInstance(context as Context)
-
         val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
         progressBarContainer = ProgressBarContainer(progressBar)
-
-        view.findViewById<ViewPager>(org.avmedia.mirrormirror.R.id.photo_view_pager).apply {
-            offscreenPageLimit = 0 // INZ was 2
-            adapter = MediaPagerAdapter(childFragmentManager)
-        }
 
         // Make sure that the cutout "safe area" avoids the screen notch if any
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -152,6 +135,11 @@ class GalleryFragment internal constructor() : Fragment() {
     private fun startUploader(view: View?) {
         val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
 
+        // Dispaly the captured image...
+        val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(imageFile, context as Context)
+        var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.mirrormirror.R.id.image_view)
+        image?.setImageBitmap(imgBitmap)
+
         val successFunc: (msg: JSONObject) -> Unit = {
             println("Success...")
 
@@ -173,7 +161,9 @@ class GalleryFragment internal constructor() : Fragment() {
                             detectionBox.get(3) as Double,
                             detectionBox.get(2) as Double)
 
-                    makeFrame(imageFile, faceFrame, age)
+                    val bitmap = makeFrame(imageFile, faceFrame, age)
+                    var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.mirrormirror.R.id.image_view)
+                    image?.setImageBitmap(bitmap)
                 }
             }
             progressBarContainer.hide()
@@ -191,12 +181,12 @@ class GalleryFragment internal constructor() : Fragment() {
         uploader.upload(imageFile)
     }
 
-    private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Unit {
+    private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Bitmap {
 
         val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
         val bmpWithFrame = drawFaceRectanglesOnBitmap(imgBitmap, faceFrame)
         val bmp = drawAgeOnBitmap(bmpWithFrame, faceFrame, age)
-        BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
+        return BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
     }
 
     open fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {

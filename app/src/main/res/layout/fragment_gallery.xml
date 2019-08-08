@@ -21,10 +21,16 @@
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
-    <androidx.viewpager.widget.ViewPager
-        android:id="@+id/photo_view_pager"
+    <!--<androidx.viewpager.widget.ViewPager-->
+    <!--android:id="@+id/photo_view_pager"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent" />-->
+
+    <ImageView
+        android:id="@+id/image_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/cutout_safe_area"
