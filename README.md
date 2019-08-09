@@ -4,7 +4,7 @@
 
 - Uses "IBM Facial Age Estimator" as a service. This service detects faces in an image, extracts facial features for each face detected and finally predicts the age of each face.
 
-- Written in Kotlin. Also used CameraX Webpack library.
+- Written in Kotlin. Also uses CameraX Webpack library.
 
 Credits:
 
