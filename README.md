@@ -21,7 +21,7 @@ Credits:
 
 This is an open-source software, available here:
 
-   https://gitlab.com/izivkov/mirrormirror
+   https://github.com/izivkov/AgeEstimator.git
 
 
 
