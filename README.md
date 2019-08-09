@@ -1,28 +1,7 @@
-# CameraXbasic
+# Age Estimator
 
-CameraXbasic aims to demonstrate how to use CameraX APIs written in Kotlin.
+- This Android app allows you to take a 'selfie' and will estimate your age.
 
-## Build
+- Uses "IBM Facial Age Estimator" as a service. This services detects faces in an image, extracts facial features for each face detected and finally predicts the age of each face. 
 
-To build the app directly from the command line, run:
-```sh
-./gradlew assembleDebug
-```
-
-## Test
-
-Unit testing and instrumented device testing share the same code. To test the app using Roboelectric, no device required, run:
-```sh
-./gradlew test
-```
-
-To run the same tests in an Android device connected via ADB, run:
-```sh
-./gradlew connectedAndroidTest
-```
-
-Alternatively, test running configurations can be added to Android Studio for convenience (and a nice UI). To do that:
-1. Go to: `Run` > `Edit Configurations` > `Add New Configuration`.
-1. For Roboelectric select `Android JUnit`, for connected device select `Android Instrumented Tests`.
-1. Select `app` module and `com.android.example.cameraxbasic.MainInstrumentedTest` class.
-1. Optional: Give the run configuration a name, like `test roboelectric` or `test device`
+- Written in Kotlin. Used CameraX Webpack.
