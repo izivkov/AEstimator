@@ -22,6 +22,7 @@ import android.graphics.*
 import android.graphics.Color.YELLOW
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.text.TextPaint
 import android.view.LayoutInflater
 import android.view.View
@@ -31,19 +32,18 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
-import androidx.work.WorkManager
 import org.avmedia.mirrormirror.BuildConfig
 import org.avmedia.mirrormirror.R
 import org.avmedia.mirrormirror.utils.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.InputStream
 import java.net.URL
 
 val EXTENSION_WHITELIST = arrayOf("JPG")
@@ -124,10 +124,6 @@ class GalleryFragment internal constructor() : Fragment() {
                 startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
 
         startUploader(view)
     }
@@ -161,32 +157,37 @@ class GalleryFragment internal constructor() : Fragment() {
                             detectionBox.get(3) as Double,
                             detectionBox.get(2) as Double)
 
-                    val bitmap = makeFrame(imageFile, faceFrame, age)
-                    var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.mirrormirror.R.id.image_view)
-                    image?.setImageBitmap(bitmap)
+                    makeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.mirrormirror.R.id.image_view))
                 }
             }
+
             progressBarContainer.hide()
+            val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.mirrormirror.R.id.toolbar_message)
+            errorToolBar?.visibility = View.GONE
         }
 
         val failFunc: (msg: JSONObject) -> Unit = {
-            println("Failed...")
             textViewAge?.text = it.getString("msg")
             progressBarContainer.hide()
         }
 
-        val uploader = FileUploader(URL("http://max-facial-age-estimator.max.us-south.containers.appdomain.cloud"), successFunc, failFunc)
+        val serverUrl: String = getString(R.string.server_url)
+        val uploader = FileUploader(URL(serverUrl), successFunc, failFunc)
 
         uploader.setProgressListener(progressBarContainer.showProgress)
         uploader.upload(imageFile)
     }
 
-    private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer): Bitmap {
+    private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer, imageView: ImageView?) {
 
-        val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
-        val bmpWithFrame = drawFaceRectanglesOnBitmap(imgBitmap, faceFrame)
-        val bmp = drawAgeOnBitmap(bmpWithFrame, faceFrame, age)
-        return BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
+        // Draw the frame with the age.
+        val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
+        val bmpWithFrame = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
+        val bmpWithAge = drawAgeOnBitmap(bmpWithFrame, faceFrame, age)
+        BitmapExtractor.setBitmapToFile(file, bmpWithAge, context as Context)
+
+        // update the view
+        imageView?.setImageBitmap(bmpWithAge)
     }
 
     open fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {
@@ -285,21 +286,26 @@ class GalleryFragment internal constructor() : Fragment() {
 
     private inner class FrameFlasher {
 
-        open fun flashFrame(file: File, context: Context, faceFrame: ImageBox, flashPattern: List<FlashPatternCycle>): Bitmap {
+        open fun flashFrame(file: File, context: Context, faceFrame: ImageBox, flashPattern: List<FlashPatternCycle>, image: ImageView?): Bitmap {
 
             val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context)
             var retBitmap: Bitmap = origBitmap
 
             for (flashCycle in flashPattern) {
                 if (flashCycle.state == FlashState.ON) {
-                    val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context)
-                    retBitmap = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
-                    BitmapExtractor.setBitmapToFile(file, retBitmap, context)
-                    //delay(flashCycle.duration)
+                    Handler().postDelayed({
+                        val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context)
+                        retBitmap = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
+                        val bmp: Bitmap = BitmapExtractor.setBitmapToFile(file, retBitmap, context)
+                        image?.setImageBitmap(bmp)
+                    }, flashCycle.duration)
+
 
                 } else {
-                    BitmapExtractor.setBitmapToFile(file, origBitmap, context)
-                    //delay(flashCycle.duration)
+                    Handler().postDelayed({
+                        BitmapExtractor.setBitmapToFile(file, origBitmap, context)
+                        image?.setImageBitmap(retBitmap)
+                    }, flashCycle.duration)
                 }
             }
             return retBitmap

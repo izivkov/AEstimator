@@ -41,6 +41,7 @@ import android.util.Rational
 import android.util.Size
 import android.view.*
 import android.webkit.MimeTypeMap
+import android.widget.Button
 import android.widget.ImageButton
 import androidx.camera.core.CameraX
 import androidx.camera.core.ImageAnalysis
@@ -230,6 +231,10 @@ class CameraFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+    }
+
     /** Declare and bind preview, capture and analysis use cases */
     private fun bindCameraUseCases() {
 
@@ -311,7 +316,8 @@ class CameraFragment : Fragment() {
         val controls = View.inflate(requireContext(), R.layout.camera_ui_container, container)
 
         // Listener for button used to capture photo
-        controls.findViewById<ImageButton>(R.id.camera_capture_button).setOnClickListener {
+        val captureButton = controls.findViewById<Button>(R.id.camera_capture_button)
+        captureButton.setOnClickListener {
             // Get a stable reference of the modifiable image capture use case
             imageCapture?.let { imageCapture ->
 
@@ -331,6 +337,9 @@ class CameraFragment : Fragment() {
 
                 // Setup image capture listener which is triggered after photo has been taken
                 imageCapture.takePicture(photoFile, imageSavedListener, metadata)
+
+                // disable shutter button to prevent another picture
+                captureButton.isClickable=false
 
                 // We can only change the foreground Drawable using API level 23+ API
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
