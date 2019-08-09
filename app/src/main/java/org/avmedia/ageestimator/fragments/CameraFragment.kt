@@ -14,31 +14,26 @@
  * limitations under the License.
  */
 
-package org.avmedia.mirrormirror.fragments
+package org.avmedia.ageestimator.fragments
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.Matrix
 import android.graphics.drawable.ColorDrawable
 import android.hardware.Camera
 import android.hardware.display.DisplayManager
-import android.media.ExifInterface
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
-import android.provider.MediaStore
 import android.util.DisplayMetrics
 import android.util.Log
 import android.util.Rational
-import android.util.Size
 import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.Button
@@ -58,26 +53,22 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.avmedia.mirrormirror.KEY_EVENT_ACTION
+import org.avmedia.ageestimator.KEY_EVENT_ACTION
 import java.io.File
-import java.lang.Exception
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import org.avmedia.mirrormirror.KEY_EVENT_EXTRA
-import org.avmedia.mirrormirror.MainActivity
-import org.avmedia.mirrormirror.R
-import org.avmedia.mirrormirror.utils.ANIMATION_FAST_MILLIS
-import org.avmedia.mirrormirror.utils.ANIMATION_SLOW_MILLIS
-import org.avmedia.mirrormirror.utils.AutoFitPreviewBuilder
-import org.avmedia.mirrormirror.utils.simulateClick
-import java.io.FileDescriptor
-import java.io.FileInputStream
+import org.avmedia.ageestimator.KEY_EVENT_EXTRA
+import org.avmedia.ageestimator.MainActivity
+import org.avmedia.ageestimator.R
+import org.avmedia.ageestimator.utils.ANIMATION_FAST_MILLIS
+import org.avmedia.ageestimator.utils.ANIMATION_SLOW_MILLIS
+import org.avmedia.ageestimator.utils.AutoFitPreviewBuilder
+import org.avmedia.ageestimator.utils.simulateClick
 
 
 /** Helper type alias used for analysis use case callbacks */
@@ -436,7 +427,7 @@ class CameraFragment : Fragment() {
     }
 
     companion object {
-        private const val TAG = "MirrorMirror"
+        private const val TAG = "AgeEstimator"
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val PHOTO_EXTENSION = ".jpg"
 

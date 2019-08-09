@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.avmedia.mirrormirror.utils
+package org.avmedia.ageestimator.utils
 
 import android.os.Build
 import android.view.DisplayCutout

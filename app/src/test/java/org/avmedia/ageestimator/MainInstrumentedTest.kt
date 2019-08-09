@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.avmedia.mirrormirror
+package org.avmedia.ageestimator
 
 import android.Manifest
 import android.content.Context

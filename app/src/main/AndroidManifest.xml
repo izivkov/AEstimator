@@ -15,7 +15,7 @@
   -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
-    package="org.avmedia.mirrormirror">
+    package="org.avmedia.ageestimator">
 
     <!-- Enable instant app support -->
     <dist:module dist:instant="true" />
@@ -33,7 +33,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name="org.avmedia.mirrormirror.MainActivity"
+            android:name="org.avmedia.ageestimator.MainActivity"
             android:clearTaskOnLaunch="true"
             android:configChanges="orientation"
             android:icon="@mipmap/ic_launcher"

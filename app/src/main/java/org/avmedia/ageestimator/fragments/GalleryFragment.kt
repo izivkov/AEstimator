@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.avmedia.mirrormirror.fragments
+package org.avmedia.ageestimator.fragments
 
 import android.content.Context
 import android.content.Intent
@@ -38,9 +38,9 @@ import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
-import org.avmedia.mirrormirror.BuildConfig
-import org.avmedia.mirrormirror.R
-import org.avmedia.mirrormirror.utils.*
+import org.avmedia.ageestimator.BuildConfig
+import org.avmedia.ageestimator.R
+import org.avmedia.ageestimator.utils.*
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -80,13 +80,13 @@ class GalleryFragment internal constructor() : Fragment() {
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(org.avmedia.mirrormirror.R.layout.fragment_gallery, container, false)
+        return inflater.inflate(org.avmedia.ageestimator.R.layout.fragment_gallery, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val progressBar = view.findViewById<ProgressBar>(org.avmedia.mirrormirror.R.id.progressBar)
+        val progressBar = view.findViewById<ProgressBar>(org.avmedia.ageestimator.R.id.progressBar)
         progressBarContainer = ProgressBarContainer(progressBar)
 
         // Make sure that the cutout "safe area" avoids the screen notch if any
@@ -96,7 +96,7 @@ class GalleryFragment internal constructor() : Fragment() {
         }
 
         // Handle back button press
-        view.findViewById<ImageButton>(org.avmedia.mirrormirror.R.id.back_button).setOnClickListener {
+        view.findViewById<ImageButton>(org.avmedia.ageestimator.R.id.back_button).setOnClickListener {
             fragmentManager?.popBackStack()
         }
 
@@ -133,7 +133,7 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // Dispaly the captured image...
         val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(imageFile, context as Context)
-        var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.mirrormirror.R.id.image_view)
+        var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view)
         image?.setImageBitmap(imgBitmap)
 
         val successFunc: (msg: JSONObject) -> Unit = {
@@ -157,13 +157,14 @@ class GalleryFragment internal constructor() : Fragment() {
                             detectionBox.get(3) as Double,
                             detectionBox.get(2) as Double)
 
-                    makeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.mirrormirror.R.id.image_view))
+                    makeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
                 }
+                // Hide the toolBar for error messages.
+                val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
+                errorToolBar?.visibility = View.GONE
             }
 
             progressBarContainer.hide()
-            val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.mirrormirror.R.id.toolbar_message)
-            errorToolBar?.visibility = View.GONE
         }
 
         val failFunc: (msg: JSONObject) -> Unit = {

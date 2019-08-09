@@ -24,7 +24,7 @@ android {
     compileSdkVersion 28
     defaultConfig {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        applicationId "org.avmedia.mirrormirror"
+        applicationId "org.avmedia.ageestimator"
         minSdkVersion 21
         targetSdkVersion 28
         versionCode 1

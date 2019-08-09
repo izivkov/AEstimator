@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.avmedia.mirrormirror.fragments
+package org.avmedia.ageestimator.fragments
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -23,7 +23,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
-import org.avmedia.mirrormirror.R
+import org.avmedia.ageestimator.R
 
 private const val PERMISSIONS_REQUEST_CODE = 10
 private val PERMISSIONS_REQUIRED = arrayOf(

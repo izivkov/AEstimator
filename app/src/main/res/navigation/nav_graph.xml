@@ -22,7 +22,7 @@
 
     <fragment
         android:id="@+id/permissions_fragment"
-        android:name="org.avmedia.mirrormirror.fragments.PermissionsFragment"
+        android:name="org.avmedia.ageestimator.fragments.PermissionsFragment"
         android:label="PermissionsFragment" >
 
         <action
@@ -35,7 +35,7 @@
 
     <fragment
         android:id="@+id/camera_fragment"
-        android:name="org.avmedia.mirrormirror.fragments.CameraFragment"
+        android:name="org.avmedia.ageestimator.fragments.CameraFragment"
         android:label="CameraFragment" >
 
         <action
@@ -46,7 +46,7 @@
 
     <fragment
         android:id="@+id/gallery_fragment"
-        android:name="org.avmedia.mirrormirror.fragments.GalleryFragment"
+        android:name="org.avmedia.ageestimator.fragments.GalleryFragment"
         android:label="GalleryFragment" >
         <argument
             android:name="root_directory"

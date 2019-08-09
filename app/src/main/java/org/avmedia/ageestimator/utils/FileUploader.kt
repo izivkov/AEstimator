@@ -1,4 +1,4 @@
-package org.avmedia.mirrormirror.utils
+package org.avmedia.ageestimator.utils
 
 import android.content.ContentValues.TAG
 import android.util.Log
