@@ -37,7 +37,6 @@ import android.util.Rational
 import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.Button
-import android.widget.ImageButton
 import androidx.camera.core.CameraX
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageAnalysisConfig
@@ -101,8 +100,8 @@ class CameraFragment : Fragment() {
                 // When the volume down button is pressed, simulate a shutter button click
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     val shutter = container
-                            .findViewById<ImageButton>(R.id.camera_capture_button)
-                    shutter.simulateClick()
+                            .findViewById<Button>(R.id.camera_capture_button)
+                    shutter.performClick()
                 }
             }
         }
