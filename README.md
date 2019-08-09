@@ -10,17 +10,17 @@ Credits:
 
 1. Facial Age Estimator:
 
-https://developer.ibm.com/exchanges/models/all/max-facial-age-estimator/
+    https://developer.ibm.com/exchanges/models/all/max-facial-age-estimator/
 
 2. Icon Image from Wikimedia Commons, author:
 
-Jeffrey Avellanosa
+    Jeffrey Avellanosa
 
-https://www.flickr.com/photos/94778654@N00
+    https://www.flickr.com/photos/94778654@N00
 
 This is an open-source software, available here:
 
-https://gitlab.com/izivkov/mirrormirror
+    https://gitlab.com/izivkov/mirrormirror
 
 
 
