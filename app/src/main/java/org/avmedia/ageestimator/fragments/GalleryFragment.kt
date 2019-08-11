@@ -155,11 +155,9 @@ class GalleryFragment internal constructor() : Fragment() {
     private fun getDataObserver(): Observer<JSONObject> {
         return object : Observer<JSONObject> {
             override fun onSubscribe(d: Disposable) {
-                println ("onSubscribe")
             }
 
             override fun onNext(s: JSONObject) {
-                println ("onNext")
                 successFunc (s)
             }
 
@@ -169,7 +167,6 @@ class GalleryFragment internal constructor() : Fragment() {
             }
 
             override fun onComplete() {
-                println ("onComplete")
             }
         }
     }
@@ -251,17 +248,23 @@ class GalleryFragment internal constructor() : Fragment() {
         // Draw text
         val fm: Paint.FontMetrics = Paint.FontMetrics()
         val textPaint = TextPaint()
-        textPaint.textSize = 24f
-
-        textPaint.color = Color.YELLOW
-        textPaint.style = Paint.Style.STROKE
-        textPaint.strokeWidth = 4f
-        canvas.drawText(ageStr, x, y, textPaint)
+        textPaint.textSize = 32f
 
         textPaint.color = Color.RED
         textPaint.style = Paint.Style.STROKE
+        textPaint.strokeWidth = 6f
+
+        val textWidth = (textPaint.measureText(ageStr)).toDouble()
+        val frameCenter = (faceFrame.x1+faceFrame.x2) * canvas.width / 2
+        val xCenter: Float = (frameCenter - textWidth/2).toFloat()
+
+        canvas.drawText(ageStr, xCenter, y+4, textPaint)
+
+        textPaint.color = Color.YELLOW
+        textPaint.style = Paint.Style.STROKE
         textPaint.strokeWidth = 2f
-        canvas.drawText(ageStr, x, y, textPaint)
+
+        canvas.drawText(ageStr, xCenter, y+4, textPaint)
 
         return bitmap
     }
