@@ -6,17 +6,21 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FileDataPart
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.ResponseDeserializable
-import com.github.kittinunf.fuel.coroutines.awaitObjectResult
 import com.github.kittinunf.fuel.json.responseJson
+import com.github.kittinunf.fuel.rx.rxObject
 import com.github.kittinunf.result.Result
-import kotlinx.coroutines.runBlocking
+import io.reactivex.Emitter
+import io.reactivex.Observable
+import io.reactivex.Observer
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
+import io.reactivex.subjects.PublishSubject
 import org.json.JSONObject
 import java.io.File
 import java.net.URL
 
-open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> Unit, val failureCallback: (msg: JSONObject) -> Unit) {
+open class FileUploader constructor (baseUrl: URL, val dataObserver: Observer<JSONObject>, val progressObserver: Observer<Int>) {
 
-    var progressCallback: (Int) -> Unit = {}
 
     init {
         FuelManager.instance.apply {
@@ -25,33 +29,19 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
         }
     }
 
-    open fun upload_XXX(file: File) {
-        runBlocking {
-            val fileSize = file.length()
-            Fuel.upload("/model/predict")
-                    .add {
-                        FileDataPart(file, "image", "testimage.jpg")
-                    }
+    open fun uploadRx(file: File) {
 
-                    .progress { writtenBytes, totalBytes ->
-                        val progress = writtenBytes.toFloat() / totalBytes.toFloat()
-                        Log.v(TAG, "Upload: ${progress}")
-                        progressCallback.invoke((100 * progress).toInt())
-                    }
-                    .also { Log.d(TAG, it.toString()) }
+        val dataSubject = PublishSubject.create<JSONObject>()
+        dataSubject.subscribe(dataObserver);
 
-                    .awaitObjectResult(AgeDeserializer).fold(
-                            { data ->
-                                successCallback.invoke(JSONObject(data))
-                            },
-                            { error ->
-                                failureCallback.invoke(JSONObject("""{"msg": "Something went wrong!"}"""))
-                            }
-                    )
-        }
+        val progressSubject = PublishSubject.create<Int>()
+        progressSubject.subscribe(progressObserver);
+
+        doUpload(file, dataSubject, progressSubject)
     }
 
-    open fun upload(file: File) {
+    private fun doUpload (file: File, dataSubject: PublishSubject<JSONObject>, progressSubject: PublishSubject<Int>): Unit {
+
         val fileSize = file.length()
         Fuel.upload("/model/predict")
                 .add {
@@ -61,30 +51,32 @@ open class FileUploader(baseUrl: URL, val successCallback: (msg: JSONObject) -> 
                 .progress { writtenBytes, totalBytes ->
                     val progress = writtenBytes.toFloat() / totalBytes.toFloat()
                     Log.v(TAG, "Upload: ${progress}")
-                    progressCallback.invoke((100 * progress).toInt())
+                    progressSubject.onNext((100 * progress).toInt())
                 }
+
                 .also { Log.d(TAG, it.toString()) }
 
-                .responseJson { _, _, result ->
+                .rxObject(AgeDeserializer)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { result ->
 
                     when (result) {
                         is Result.Success -> {
-                            successCallback.invoke(JSONObject(result.get().content))
+                            dataSubject.onNext(JSONObject(result.value))
                         }
                         is Result.Failure -> {
-                            failureCallback.invoke(JSONObject("""{"msg": "Something went wrong!"}"""))
+                            dataSubject.onError(Throwable("Something went wrong!"))
                         }
                     }
+
+                    dataSubject.onComplete()
+                    progressSubject.onComplete()
                 }
     }
-
 
     object AgeDeserializer : ResponseDeserializable<String> {
         override fun deserialize(content: String) =
                 content
-    }
-
-    open fun setProgressListener(_progressCallback: (progress: Int) -> Unit) {
-        this.progressCallback = _progressCallback
     }
 }

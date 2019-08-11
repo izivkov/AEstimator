@@ -3,14 +3,17 @@ package org.avmedia.ageestimator.utils
 import android.os.Build
 import android.view.View
 import android.widget.ProgressBar
+import io.reactivex.Observer
+import io.reactivex.disposables.Disposable
 
 open class ProgressBarContainer(_progressBar: ProgressBar) {
     var progressBar: ProgressBar = _progressBar
-    var showProgress: (Int) -> Unit = {
+
+    private fun showProgress (progress: Int): Unit {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {
-            progressBar.setProgress(it)
+            progressBar.setProgress(progress)
         } else {
-            progressBar.setProgress(it, true)
+            progressBar.setProgress(progress, true)
         }
     }
 
@@ -21,4 +24,25 @@ open class ProgressBarContainer(_progressBar: ProgressBar) {
     open fun hide() {
         progressBar.visibility = View.GONE
     }
+
+    open fun getProgressObserver(): Observer<Int> {
+        return object : Observer<Int> {
+            override fun onSubscribe(d: Disposable) {
+                println ("onSubscribe")
+            }
+
+            override fun onNext(progress: Int) {
+                showProgress(progress)
+            }
+
+            override fun onError(e: Throwable) {
+                println ("onError")
+            }
+
+            override fun onComplete() {
+                println ("onComplete")
+            }
+        }
+    }
+
 }

@@ -38,6 +38,9 @@ import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
+import io.reactivex.Observable
+import io.reactivex.Observer
+import io.reactivex.disposables.Disposable
 import org.avmedia.ageestimator.BuildConfig
 import org.avmedia.ageestimator.R
 import org.avmedia.ageestimator.utils.*
@@ -173,10 +176,77 @@ class GalleryFragment internal constructor() : Fragment() {
         }
 
         val serverUrl: String = getString(R.string.server_url)
-        val uploader = FileUploader(URL(serverUrl), successFunc, failFunc)
 
-        uploader.setProgressListener(progressBarContainer.showProgress)
-        uploader.upload(imageFile)
+        val dataObserver: Observer<JSONObject> = getDataObserver()
+        val progressObserver: Observer<Int> = getProgressObserver()
+        val uploader = FileUploader(URL(serverUrl), dataObserver, progressObserver)
+
+        uploader.uploadRx(imageFile)
+    }
+
+    private fun getProgressObserver(): Observer<Int> {
+        return progressBarContainer.getProgressObserver()
+    }
+
+    private fun getDataObserver(): Observer<JSONObject> {
+        return object : Observer<JSONObject> {
+            override fun onSubscribe(d: Disposable) {
+                println ("onSubscribe")
+            }
+
+            override fun onNext(s: JSONObject) {
+                println ("onNext")
+                successFunc (s)
+            }
+
+            override fun onError(e: Throwable) {
+
+                failFunc (e.message)
+            }
+
+            override fun onComplete() {
+                println ("onComplete")
+            }
+        }
+    }
+
+    val successFunc: (msg: JSONObject) -> Unit = {
+        println("Success...")
+
+        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
+
+        val predictions: JSONArray? = it.get("predictions") as JSONArray
+        if (predictions == null || predictions.length() == 0) {
+            textViewAge?.text = "Could not recognise face"
+        } else {
+            for (i in 0..(predictions.length() - 1)) {
+                val prediction = predictions.getJSONObject(i)
+
+                val age: Integer = prediction?.get("age_estimation") as Integer
+
+                val detectionBox: JSONArray = prediction.get("detection_box") as JSONArray
+
+                // this seems to be the order the data comes in
+                val faceFrame: ImageBox = ImageBox(
+                        detectionBox.get(1) as Double,
+                        detectionBox.get(0) as Double,
+                        detectionBox.get(3) as Double,
+                        detectionBox.get(2) as Double)
+
+                makeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
+            }
+            // Hide the toolBar for error messages.
+            val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
+            errorToolBar?.visibility = View.GONE
+        }
+
+        progressBarContainer.hide()
+    }
+
+    val failFunc: (msg: String?) -> Unit = {
+        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
+        textViewAge?.text = it
+        progressBarContainer.hide()
     }
 
     private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer, imageView: ImageView?) {
