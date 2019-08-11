@@ -139,42 +139,6 @@ class GalleryFragment internal constructor() : Fragment() {
         var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view)
         image?.setImageBitmap(imgBitmap)
 
-        val successFunc: (msg: JSONObject) -> Unit = {
-            println("Success...")
-
-            val predictions: JSONArray? = it.get("predictions") as JSONArray
-            if (predictions == null || predictions.length() == 0) {
-                textViewAge?.text = "Could not recognise face"
-            } else {
-                for (i in 0..(predictions.length() - 1)) {
-                    val prediction = predictions.getJSONObject(i)
-
-                    val age: Integer = prediction?.get("age_estimation") as Integer
-
-                    val detectionBox: JSONArray = prediction.get("detection_box") as JSONArray
-
-                    // this seems to be the order the data comes in
-                    val faceFrame: ImageBox = ImageBox(
-                            detectionBox.get(1) as Double,
-                            detectionBox.get(0) as Double,
-                            detectionBox.get(3) as Double,
-                            detectionBox.get(2) as Double)
-
-                    makeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
-                }
-                // Hide the toolBar for error messages.
-                val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
-                errorToolBar?.visibility = View.GONE
-            }
-
-            progressBarContainer.hide()
-        }
-
-        val failFunc: (msg: JSONObject) -> Unit = {
-            textViewAge?.text = it.getString("msg")
-            progressBarContainer.hide()
-        }
-
         val serverUrl: String = getString(R.string.server_url)
 
         val dataObserver: Observer<JSONObject> = getDataObserver()

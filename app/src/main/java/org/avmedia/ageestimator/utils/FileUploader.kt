@@ -6,11 +6,8 @@ import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FileDataPart
 import com.github.kittinunf.fuel.core.FuelManager
 import com.github.kittinunf.fuel.core.ResponseDeserializable
-import com.github.kittinunf.fuel.json.responseJson
 import com.github.kittinunf.fuel.rx.rxObject
 import com.github.kittinunf.result.Result
-import io.reactivex.Emitter
-import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -19,7 +16,7 @@ import org.json.JSONObject
 import java.io.File
 import java.net.URL
 
-open class FileUploader constructor (baseUrl: URL, val dataObserver: Observer<JSONObject>, val progressObserver: Observer<Int>) {
+open class FileUploader constructor(baseUrl: URL, val dataObserver: Observer<JSONObject>, val progressObserver: Observer<Int>) {
 
 
     init {
@@ -32,15 +29,15 @@ open class FileUploader constructor (baseUrl: URL, val dataObserver: Observer<JS
     open fun uploadRx(file: File) {
 
         val dataSubject = PublishSubject.create<JSONObject>()
-        dataSubject.subscribe(dataObserver);
+        dataSubject.subscribe(dataObserver)
 
         val progressSubject = PublishSubject.create<Int>()
-        progressSubject.subscribe(progressObserver);
+        progressSubject.subscribe(progressObserver)
 
         doUpload(file, dataSubject, progressSubject)
     }
 
-    private fun doUpload (file: File, dataSubject: PublishSubject<JSONObject>, progressSubject: PublishSubject<Int>): Unit {
+    private fun doUpload(file: File, dataSubject: PublishSubject<JSONObject>, progressSubject: PublishSubject<Int>): Unit {
 
         val fileSize = file.length()
         Fuel.upload("/model/predict")
