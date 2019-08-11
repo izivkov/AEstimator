@@ -26,7 +26,7 @@ open class FileUploader constructor(baseUrl: URL, val dataObserver: Observer<JSO
         }
     }
 
-    open fun uploadRx(file: File) {
+    open fun upload(file: File) {
 
         val dataSubject = PublishSubject.create<JSONObject>()
         dataSubject.subscribe(dataObserver)

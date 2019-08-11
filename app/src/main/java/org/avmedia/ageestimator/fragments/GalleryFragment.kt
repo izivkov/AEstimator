@@ -145,7 +145,7 @@ class GalleryFragment internal constructor() : Fragment() {
         val progressObserver: Observer<Int> = getProgressObserver()
         val uploader = FileUploader(URL(serverUrl), dataObserver, progressObserver)
 
-        uploader.uploadRx(imageFile)
+        uploader.upload(imageFile)
     }
 
     private fun getProgressObserver(): Observer<Int> {
