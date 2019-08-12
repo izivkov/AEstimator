@@ -157,7 +157,25 @@ class GalleryFragment internal constructor() : Fragment() {
                 Rect (left, top, right, bottom),
                 paint)
 
-        canvas.height
+        // Draw text
+        val scanMsg = "Get the app here:"
+        val fm: Paint.FontMetrics = Paint.FontMetrics()
+        val textPaint = TextPaint()
+        textPaint.textSize = 20f
+        textPaint.color = Color.RED
+        textPaint.style = Paint.Style.STROKE
+        textPaint.strokeWidth = 2f
+
+        val textWidth = (textPaint.measureText(scanMsg)).toDouble()
+        val textX = (left - textWidth - 10).toFloat()
+        val textY = (top + 4 + (qrBitmap.height/2)).toFloat()
+
+        canvas.drawText(scanMsg, textX, textY, textPaint)
+
+        textPaint.strokeWidth = 1f
+        textPaint.color = Color.YELLOW
+        canvas.drawText(scanMsg, textX, textY, textPaint)
+
         return bitmap
     }
 
@@ -165,7 +183,7 @@ class GalleryFragment internal constructor() : Fragment() {
     private fun startUploader(view: View?) {
         val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
 
-        // Dispaly the captured image...
+        // Display the captured image...
         val imgBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(imageFile, context as Context)
         var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view)
         image?.setImageBitmap(imgBitmap)
