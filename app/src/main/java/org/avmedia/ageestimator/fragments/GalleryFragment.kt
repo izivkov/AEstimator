@@ -38,7 +38,6 @@ import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
-import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
 import org.avmedia.ageestimator.BuildConfig
@@ -123,6 +122,8 @@ class GalleryFragment internal constructor() : Fragment() {
                 action = Intent.ACTION_SEND
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
 
+                drawQRCodeToFile (imageFile, "https://play.google.com/store/apps/details?id=org.avmedia.ageestimator")
+
                 // Launch the intent letting the user choose which app to share with
                 startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
             }
@@ -130,6 +131,36 @@ class GalleryFragment internal constructor() : Fragment() {
 
         startUploader(view)
     }
+
+    private fun drawQRCodeToFile (file: File, text: String): Unit {
+        val qrGenrator: ZxingQrCodeGenerator = ZxingQrCodeGenerator()
+        val qrBitmap: Bitmap = qrGenrator.generateQrCodeSync(text, 100, 100, Color.WHITE)
+
+        val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(imageFile, context as Context)
+        val bmpWithQR: Bitmap = drawWRCodeToBitmap (origBitmap, qrBitmap)
+        BitmapExtractor.setBitmapToFile(imageFile, bmpWithQR, context as Context)
+    }
+
+    open fun drawWRCodeToBitmap(originalBitmap: Bitmap, qrBitmap: Bitmap): Bitmap {
+        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas: Canvas = Canvas(bitmap)
+        val paint: Paint = Paint()
+        paint.isAntiAlias = true
+
+        val right = canvas.width-5
+        val bottom = canvas.height-5
+        val left = right - qrBitmap.width;
+        val top = bottom - qrBitmap.height
+
+        canvas.drawBitmap (qrBitmap,
+                null,
+                Rect (left, top, right, bottom),
+                paint)
+
+        canvas.height
+        return bitmap
+    }
+
 
     private fun startUploader(view: View?) {
         val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
@@ -162,7 +193,6 @@ class GalleryFragment internal constructor() : Fragment() {
             }
 
             override fun onError(e: Throwable) {
-
                 failFunc (e.message)
             }
 
