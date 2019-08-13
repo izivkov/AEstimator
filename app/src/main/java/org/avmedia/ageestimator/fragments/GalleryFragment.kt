@@ -185,7 +185,6 @@ class GalleryFragment internal constructor() : Fragment() {
         return bitmap
     }
 
-
     private fun startUploader(view: View?) {
         val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
 
@@ -211,6 +210,10 @@ class GalleryFragment internal constructor() : Fragment() {
         return progressBarContainer.getProgressObserver()
     }
 
+    ////////////////////////////////
+    // Age Handling ////////////////
+    ////////////////////////////////
+
     private fun getAgeDataObserver(): Observer<JSONObject> {
         return object : Observer<JSONObject> {
             override fun onSubscribe(d: Disposable) {
@@ -227,66 +230,6 @@ class GalleryFragment internal constructor() : Fragment() {
             override fun onComplete() {
             }
         }
-    }
-
-    private fun getMoodDataObserver(): Observer<JSONObject> {
-        return object : Observer<JSONObject> {
-            override fun onSubscribe(d: Disposable) {
-            }
-
-            override fun onNext(s: JSONObject) {
-                successFuncMood (s)
-            }
-
-            override fun onError(e: Throwable) {
-                failFunc (e.message)
-            }
-
-            override fun onComplete() {
-            }
-        }
-    }
-    val successFuncMood: (msg: JSONObject) -> Unit = {
-        println("Mood Success...")
-        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
-
-        val predictions: JSONArray? = it.get("predictions") as JSONArray
-        if (predictions == null || predictions.length() == 0) {
-            textViewAge?.text = "Could not recognise face"
-        } else {
-            for (i in 0..(predictions.length() - 1)) {
-                val prediction = predictions.getJSONObject(i)
-
-                val emotions: JSONArray = prediction?.get("emotion_predictions") as JSONArray
-
-                val detectionBox: JSONArray = prediction.get("detection_box") as JSONArray
-
-                // this seems to be the order the data comes in
-                val faceFrame: ImageBox = ImageBox(
-                        detectionBox.get(1) as Double,
-                        detectionBox.get(0) as Double,
-                        detectionBox.get(3) as Double,
-                        detectionBox.get(2) as Double)
-
-                val emotionsList: List<Emotion> = makeEmotionList (emotions)
-                makeMoodFrame(imageFile, faceFrame, emotionsList, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
-            }
-            // Hide the toolBar for error messages.
-            val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
-            errorToolBar?.visibility = View.GONE
-        }
-
-        progressBarContainer.hide()
-    }
-
-    private fun makeEmotionList (emotionsJsonArray: JSONArray): List<Emotion> {
-
-        val gson = GsonBuilder().setPrettyPrinting().create()
-
-        var emotions: List<Emotion> = gson.fromJson(emotionsJsonArray.toString(), object : TypeToken<List<Emotion>>() {}.type)
-        emotions.forEach { println(it) }
-
-        return emotions
     }
 
     val successFunc: (msg: JSONObject) -> Unit = {
@@ -340,62 +283,6 @@ class GalleryFragment internal constructor() : Fragment() {
         imageView?.setImageBitmap(bmpWithAge)
     }
 
-    private fun makeMoodFrame(file: File, faceFrame: ImageBox, emotions: List<Emotion>, imageView: ImageView?) {
-
-        // Draw the frame with the age.
-        val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
-        val bmpWithFrame = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
-        val bmpWithEmotions = drawEmotionsOnBitmap(bmpWithFrame, faceFrame, emotions)
-        BitmapExtractor.setBitmapToFile(file, bmpWithEmotions, context as Context)
-
-        // update the view
-        imageView?.setImageBitmap(bmpWithEmotions)
-    }
-
-    open fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {
-        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas: Canvas = Canvas(bitmap)
-        val paint: Paint = Paint()
-        paint.isAntiAlias = true
-        paint.style = Paint.Style.STROKE
-        paint.color = YELLOW
-        paint.strokeWidth = 1f
-        canvas.drawRect(
-                faceFrame.scale(canvas.width, canvas.height).toRect(),
-                paint)
-
-        return bitmap
-    }
-
-    private fun drawEmotionsOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, emotions: List<Emotion>): Bitmap {
-        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
-        val canvas: Canvas = Canvas(bitmap)
-
-        val x = (faceFrame.x1 * canvas.width).toFloat()
-        val y = (faceFrame.y1 * canvas.height).toFloat()
-
-        // Draw text
-        val fm: Paint.FontMetrics = Paint.FontMetrics()
-        val textPaint = TextPaint()
-        textPaint.textSize = 20f
-
-        textPaint.color = Color.YELLOW
-        textPaint.style = Paint.Style.STROKE
-        textPaint.strokeWidth = 2f
-
-        var yOffset: Int = 5;
-        for (emotion in emotions) {
-            val text = "${emotion.label}: ${(emotion.probability*100).toInt()}%"
-            canvas.drawText(text, x, y+yOffset, textPaint)
-            val bounds:Rect = Rect();
-            textPaint.getTextBounds(text, 0, text.length, bounds);
-            val height = bounds.height();
-            yOffset += height + 4
-        }
-
-        return bitmap
-    }
-
     private fun drawAgeOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, age: Integer): Bitmap {
         var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas: Canvas = Canvas(bitmap)
@@ -427,6 +314,130 @@ class GalleryFragment internal constructor() : Fragment() {
 
         return bitmap
     }
+
+    ////////////////////////////////
+    // Mood Handling ///////////////
+    ////////////////////////////////
+
+    private fun getMoodDataObserver(): Observer<JSONObject> {
+        return object : Observer<JSONObject> {
+            override fun onSubscribe(d: Disposable) {
+            }
+
+            override fun onNext(s: JSONObject) {
+                successFuncMood (s)
+            }
+
+            override fun onError(e: Throwable) {
+                failFunc (e.message)
+            }
+
+            override fun onComplete() {
+            }
+        }
+    }
+
+    private fun makeMoodFrame(file: File, faceFrame: ImageBox, emotions: List<Emotion>, imageView: ImageView?) {
+
+        // Draw the frame with the age.
+        val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
+        val bmpWithFrame = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
+        val bmpWithEmotions = drawEmotionsOnBitmap(bmpWithFrame, faceFrame, emotions)
+        BitmapExtractor.setBitmapToFile(file, bmpWithEmotions, context as Context)
+
+        // update the view
+        imageView?.setImageBitmap(bmpWithEmotions)
+    }
+
+    val successFuncMood: (msg: JSONObject) -> Unit = {
+        println("Mood Success...")
+        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
+
+        val predictions: JSONArray? = it.get("predictions") as JSONArray
+        if (predictions == null || predictions.length() == 0) {
+            textViewAge?.text = "Could not recognise face"
+        } else {
+            for (i in 0..(predictions.length() - 1)) {
+                val prediction = predictions.getJSONObject(i)
+
+                val emotions: JSONArray = prediction?.get("emotion_predictions") as JSONArray
+
+                val detectionBox: JSONArray = prediction.get("detection_box") as JSONArray
+
+                // this seems to be the order the data comes in
+                val faceFrame: ImageBox = ImageBox(
+                        detectionBox.get(1) as Double,
+                        detectionBox.get(0) as Double,
+                        detectionBox.get(3) as Double,
+                        detectionBox.get(2) as Double)
+
+                val emotionsList: List<Emotion> = makeEmotionList (emotions)
+                makeMoodFrame(imageFile, faceFrame, emotionsList, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
+            }
+            // Hide the toolBar for error messages.
+            val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
+            errorToolBar?.visibility = View.GONE
+        }
+
+        progressBarContainer.hide()
+    }
+
+    private fun makeEmotionList (emotionsJsonArray: JSONArray): List<Emotion> {
+
+        val gson = GsonBuilder().setPrettyPrinting().create()
+        var emotions: List<Emotion> = gson.fromJson(emotionsJsonArray.toString(), object : TypeToken<List<Emotion>>() {}.type)
+        emotions.forEach { println(it) }
+        return emotions
+    }
+
+    private fun drawEmotionsOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, emotions: List<Emotion>): Bitmap {
+        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas: Canvas = Canvas(bitmap)
+
+        val x = (faceFrame.x1 * canvas.width).toFloat()
+        val y = (faceFrame.y1 * canvas.height).toFloat()
+
+        // Draw text
+        val fm: Paint.FontMetrics = Paint.FontMetrics()
+        val textPaint = TextPaint()
+        textPaint.textSize = 20f
+
+        textPaint.color = Color.YELLOW
+        textPaint.style = Paint.Style.STROKE
+        textPaint.strokeWidth = 2f
+
+        var yOffset: Int = 5;
+        for (emotion in emotions) {
+            val text = "${emotion.label}: ${(emotion.probability*100).toInt()}%"
+            canvas.drawText(text, x, y+yOffset, textPaint)
+            val bounds:Rect = Rect();
+            textPaint.getTextBounds(text, 0, text.length, bounds);
+            val height = bounds.height();
+            yOffset += height + 4
+        }
+
+        return bitmap
+    }
+
+    ////////////////////////////////
+    // Mood Handling End ///////////
+    ////////////////////////////////
+
+    open fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {
+        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas: Canvas = Canvas(bitmap)
+        val paint: Paint = Paint()
+        paint.isAntiAlias = true
+        paint.style = Paint.Style.STROKE
+        paint.color = YELLOW
+        paint.strokeWidth = 1f
+        canvas.drawRect(
+                faceFrame.scale(canvas.width, canvas.height).toRect(),
+                paint)
+
+        return bitmap
+    }
+
 
     private fun rotateImage(file: File) {
         val bmp: Bitmap = pictureTurn(BitmapExtractor.getBitmapFromFile(file, context as Context), file.absolutePath)
