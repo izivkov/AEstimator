@@ -38,6 +38,9 @@ import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
 import org.avmedia.ageestimator.BuildConfig
@@ -45,7 +48,9 @@ import org.avmedia.ageestimator.R
 import org.avmedia.ageestimator.utils.*
 import org.json.JSONArray
 import org.json.JSONObject
+import org.json.JSONStringer
 import java.io.File
+import java.io.StringReader
 import java.net.URL
 
 val EXTENSION_WHITELIST = arrayOf("JPG")
@@ -66,6 +71,7 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // Get root directory of media from navigation arguments
         val rootDirectory = File(args.rootDirectory)
+        // val actionType = File(args.actionType)
 
         // Walk through all files in the root directory
         // We reverse the order of the list to present the last photos first
@@ -137,11 +143,11 @@ class GalleryFragment internal constructor() : Fragment() {
         val qrBitmap: Bitmap = qrGenrator.generateQrCodeSync(text, 100, 100, Color.WHITE)
 
         val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(imageFile, context as Context)
-        val bmpWithQR: Bitmap = drawWRCodeToBitmap (origBitmap, qrBitmap)
+        val bmpWithQR: Bitmap = drawQRCodeToBitmap (origBitmap, qrBitmap)
         BitmapExtractor.setBitmapToFile(imageFile, bmpWithQR, context as Context)
     }
 
-    open fun drawWRCodeToBitmap(originalBitmap: Bitmap, qrBitmap: Bitmap): Bitmap {
+    open fun drawQRCodeToBitmap(originalBitmap: Bitmap, qrBitmap: Bitmap): Bitmap {
         var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas: Canvas = Canvas(bitmap)
         val paint: Paint = Paint()
@@ -188,11 +194,15 @@ class GalleryFragment internal constructor() : Fragment() {
         var image: ImageView? = view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view)
         image?.setImageBitmap(imgBitmap)
 
-        val serverUrl: String = getString(R.string.server_url)
+        val actionType = File(args.actionType)
+        val  uploader:FileUploader
 
-        val dataObserver: Observer<JSONObject> = getDataObserver()
-        val progressObserver: Observer<Int> = getProgressObserver()
-        val uploader = FileUploader(URL(serverUrl), dataObserver, progressObserver)
+        if ("age" == actionType.toString()) {
+            uploader = FileUploader(URL(getString(R.string.server_age_url)), getAgeDataObserver(), getProgressObserver())
+
+        } else {
+            uploader = FileUploader(URL(getString(R.string.server_mood_url)), getMoodDataObserver(), getProgressObserver())
+        }
 
         uploader.upload(imageFile)
     }
@@ -201,7 +211,7 @@ class GalleryFragment internal constructor() : Fragment() {
         return progressBarContainer.getProgressObserver()
     }
 
-    private fun getDataObserver(): Observer<JSONObject> {
+    private fun getAgeDataObserver(): Observer<JSONObject> {
         return object : Observer<JSONObject> {
             override fun onSubscribe(d: Disposable) {
             }
@@ -217,6 +227,66 @@ class GalleryFragment internal constructor() : Fragment() {
             override fun onComplete() {
             }
         }
+    }
+
+    private fun getMoodDataObserver(): Observer<JSONObject> {
+        return object : Observer<JSONObject> {
+            override fun onSubscribe(d: Disposable) {
+            }
+
+            override fun onNext(s: JSONObject) {
+                successFuncMood (s)
+            }
+
+            override fun onError(e: Throwable) {
+                failFunc (e.message)
+            }
+
+            override fun onComplete() {
+            }
+        }
+    }
+    val successFuncMood: (msg: JSONObject) -> Unit = {
+        println("Mood Success...")
+        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
+
+        val predictions: JSONArray? = it.get("predictions") as JSONArray
+        if (predictions == null || predictions.length() == 0) {
+            textViewAge?.text = "Could not recognise face"
+        } else {
+            for (i in 0..(predictions.length() - 1)) {
+                val prediction = predictions.getJSONObject(i)
+
+                val emotions: JSONArray = prediction?.get("emotion_predictions") as JSONArray
+
+                val detectionBox: JSONArray = prediction.get("detection_box") as JSONArray
+
+                // this seems to be the order the data comes in
+                val faceFrame: ImageBox = ImageBox(
+                        detectionBox.get(1) as Double,
+                        detectionBox.get(0) as Double,
+                        detectionBox.get(3) as Double,
+                        detectionBox.get(2) as Double)
+
+                val emotionsList: List<Emotion> = makeEmotionList (emotions)
+                makeMoodFrame(imageFile, faceFrame, emotionsList, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
+            }
+            // Hide the toolBar for error messages.
+            val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
+            errorToolBar?.visibility = View.GONE
+        }
+
+        progressBarContainer.hide()
+    }
+
+    private fun makeEmotionList (emotionsJsonArray: JSONArray): List<Emotion> {
+
+        val gson = GsonBuilder().setPrettyPrinting().create()
+
+        var emotions: List<Emotion> = gson.fromJson(emotionsJsonArray.toString(), object : TypeToken<List<Emotion>>() {}.type)
+        emotions.forEach { println(it) }
+
+        return emotions
     }
 
     val successFunc: (msg: JSONObject) -> Unit = {
@@ -242,7 +312,7 @@ class GalleryFragment internal constructor() : Fragment() {
                         detectionBox.get(3) as Double,
                         detectionBox.get(2) as Double)
 
-                makeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
+                makeAgeFrame(imageFile, faceFrame, age, view?.findViewById<ImageView>(org.avmedia.ageestimator.R.id.image_view))
             }
             // Hide the toolBar for error messages.
             val errorToolBar: Toolbar? = view?.findViewById<Toolbar>(org.avmedia.ageestimator.R.id.toolbar_message)
@@ -258,7 +328,7 @@ class GalleryFragment internal constructor() : Fragment() {
         progressBarContainer.hide()
     }
 
-    private fun makeFrame(file: File, faceFrame: ImageBox, age: Integer, imageView: ImageView?) {
+    private fun makeAgeFrame(file: File, faceFrame: ImageBox, age: Integer, imageView: ImageView?) {
 
         // Draw the frame with the age.
         val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
@@ -268,6 +338,18 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // update the view
         imageView?.setImageBitmap(bmpWithAge)
+    }
+
+    private fun makeMoodFrame(file: File, faceFrame: ImageBox, emotions: List<Emotion>, imageView: ImageView?) {
+
+        // Draw the frame with the age.
+        val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(file, context as Context)
+        val bmpWithFrame = drawFaceRectanglesOnBitmap(origBitmap, faceFrame)
+        val bmpWithEmotions = drawEmotionsOnBitmap(bmpWithFrame, faceFrame, emotions)
+        BitmapExtractor.setBitmapToFile(file, bmpWithEmotions, context as Context)
+
+        // update the view
+        imageView?.setImageBitmap(bmpWithEmotions)
     }
 
     open fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {
@@ -281,6 +363,35 @@ class GalleryFragment internal constructor() : Fragment() {
         canvas.drawRect(
                 faceFrame.scale(canvas.width, canvas.height).toRect(),
                 paint)
+
+        return bitmap
+    }
+
+    private fun drawEmotionsOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox, emotions: List<Emotion>): Bitmap {
+        var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas: Canvas = Canvas(bitmap)
+
+        val x = (faceFrame.x1 * canvas.width).toFloat()
+        val y = (faceFrame.y1 * canvas.height).toFloat()
+
+        // Draw text
+        val fm: Paint.FontMetrics = Paint.FontMetrics()
+        val textPaint = TextPaint()
+        textPaint.textSize = 20f
+
+        textPaint.color = Color.YELLOW
+        textPaint.style = Paint.Style.STROKE
+        textPaint.strokeWidth = 2f
+
+        var yOffset: Int = 5;
+        for (emotion in emotions) {
+            val text = "${emotion.label}: ${(emotion.probability*100).toInt()}%"
+            canvas.drawText(text, x, y+yOffset, textPaint)
+            val bounds:Rect = Rect();
+            textPaint.getTextBounds(text, 0, text.length, bounds);
+            val height = bounds.height();
+            yOffset += height + 4
+        }
 
         return bitmap
     }
@@ -396,5 +507,9 @@ class GalleryFragment internal constructor() : Fragment() {
             }
             return retBitmap
         }
+    }
+
+    private data class Emotion (val labelId: Int, val label: String, val probability:Float) {
+
     }
 }

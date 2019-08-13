@@ -6,8 +6,7 @@ import android.widget.ProgressBar
 import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
 
-open class ProgressBarContainer(_progressBar: ProgressBar) {
-    var progressBar: ProgressBar = _progressBar
+open class ProgressBarContainer(var progressBar: ProgressBar) {
 
     private fun showProgress (progress: Int): Unit {
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.M) {

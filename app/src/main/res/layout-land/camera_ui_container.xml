@@ -23,7 +23,7 @@
 
     <!-- Camera control and gallery buttons -->
     <ImageButton
-        android:id="@id/camera_capture_button"
+        android:id="@id/age_estimation_button"
         android:layout_width="@dimen/round_button_large"
         android:layout_height="@dimen/round_button_large"
         android:layout_marginRight="@dimen/shutter_button_margin"

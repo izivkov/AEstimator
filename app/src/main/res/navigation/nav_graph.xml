@@ -40,7 +40,8 @@
 
         <action
             android:id="@+id/action_camera_to_gallery"
-            app:destination="@id/gallery_fragment" />
+            app:destination="@id/gallery_fragment"
+            />
 
     </fragment>
 
@@ -50,7 +51,13 @@
         android:label="GalleryFragment" >
         <argument
             android:name="root_directory"
-            app:argType="string" />
+            app:argType="string"
+            />
+
+        <argument
+            android:name="action_type"
+            app:argType="string"
+            />
 
     </fragment>
 

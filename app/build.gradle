@@ -27,7 +27,7 @@ android {
         applicationId "org.avmedia.ageestimator"
         minSdkVersion 21
         targetSdkVersion 28
-        versionCode 4
+        versionCode 5
         versionName "2.0.0"
     }
 
@@ -114,7 +114,13 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
 
+    // JSON
+    implementation 'com.google.code.gson:gson:2.8.5'
+
+    // QR
     implementation "com.google.zxing:core:3.3.2"
+
+    // analytics
     implementation 'com.google.firebase:firebase-core:17.0.0'
 }
 

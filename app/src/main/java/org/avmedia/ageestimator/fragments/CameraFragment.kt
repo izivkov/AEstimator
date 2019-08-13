@@ -67,7 +67,6 @@ import org.avmedia.ageestimator.R
 import org.avmedia.ageestimator.utils.ANIMATION_FAST_MILLIS
 import org.avmedia.ageestimator.utils.ANIMATION_SLOW_MILLIS
 import org.avmedia.ageestimator.utils.AutoFitPreviewBuilder
-import org.avmedia.ageestimator.utils.simulateClick
 
 
 /** Helper type alias used for analysis use case callbacks */
@@ -100,7 +99,7 @@ class CameraFragment : Fragment() {
                 // When the volume down button is pressed, simulate a shutter button click
                 KeyEvent.KEYCODE_VOLUME_DOWN -> {
                     val shutter = container
-                            .findViewById<Button>(R.id.camera_capture_button)
+                            .findViewById<Button>(R.id.age_estimation_button)
                     shutter.performClick()
                 }
             }
@@ -160,7 +159,6 @@ class CameraFragment : Fragment() {
         override fun onImageSaved(photoFile: File) {
             Log.d(TAG, "Photo capture succeeded: ${photoFile.absolutePath}")
 
-
             // Implicit broadcasts will be ignored for devices running API
             // level >= 24, so if you only target 24+ you can remove this statement
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
@@ -177,10 +175,10 @@ class CameraFragment : Fragment() {
                     context, arrayOf(photoFile.absolutePath), arrayOf(mimeType), null)
 
             // INZ new
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                    CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+            FragmentNavigator.navigate(requireActivity(), R.id.fragment_container, outputDirectory.absolutePath)
 
-            // NavController.OnDestinationChangedListener()
+//            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
+//                    CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath, "age"))
         }
     }
 
@@ -305,46 +303,57 @@ class CameraFragment : Fragment() {
         // Inflate a new view containing all UI for controlling the camera
         val controls = View.inflate(requireContext(), R.layout.camera_ui_container, container)
 
+
         // Listener for button used to capture photo
-        val captureButton = controls.findViewById<Button>(R.id.camera_capture_button)
-        captureButton.setOnClickListener {
-            // Get a stable reference of the modifiable image capture use case
-            imageCapture?.let { imageCapture ->
+        val ageButton = controls.findViewById<Button>(R.id.age_estimation_button)
+        ageButton.setOnClickListener {clickListener(ageButton)}
 
-                // Delete all files here
-                if (outputDirectory.isDirectory())
-                    for (child: File in outputDirectory.listFiles())
-                        child.delete()
+        val moodButton = controls.findViewById<Button>(R.id.mood_estimation_button)
+        moodButton.setOnClickListener {clickListener(moodButton)}
+    }
 
-                // Create output file to hold the image
-                val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
+    fun clickListener (button:Button) {
+        // Get a stable reference of the modifiable image capture use case
+        imageCapture?.let { imageCapture ->
 
-                // Setup image capture metadata
-                val metadata = Metadata().apply {
-                    // Mirror image when using the front camera
-                    isReversedHorizontal = lensFacing == CameraX.LensFacing.FRONT
-                }
+            // Delete all files here
+            if (outputDirectory.isDirectory())
+                for (child: File in outputDirectory.listFiles())
+                    child.delete()
 
-                // Setup image capture listener which is triggered after photo has been taken
-                imageCapture.takePicture(photoFile, imageSavedListener, metadata)
+            // Create output file to hold the image
+            val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
 
-                // disable shutter button to prevent another picture
-                captureButton.isClickable=false
+            // Setup image capture metadata
+            val metadata = Metadata().apply {
+                // Mirror image when using the front camera
+                isReversedHorizontal = lensFacing == CameraX.LensFacing.FRONT
+            }
 
-                // We can only change the foreground Drawable using API level 23+ API
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (button.id == R.id.age_estimation_button) {
+                FragmentNavigator.setActionType ("age")
+            } else if (button.id == R.id.mood_estimation_button) {
+                FragmentNavigator.setActionType ("mood")
+            }
 
-                    // Display flash animation to indicate that photo was captured
-                    container.postDelayed({
-                        container.foreground = ColorDrawable(Color.WHITE)
-                        container.postDelayed(
-                                { container.foreground = null }, ANIMATION_FAST_MILLIS)
-                    }, ANIMATION_SLOW_MILLIS)
-                }
+            // Setup image capture listener which is triggered after photo has been taken
+            imageCapture.takePicture(photoFile, imageSavedListener, metadata)
+
+            // disable shutter button to prevent another picture
+            button.isClickable=false
+
+            // We can only change the foreground Drawable using API level 23+ API
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+                // Display flash animation to indicate that photo was captured
+                container.postDelayed({
+                    container.foreground = ColorDrawable(Color.WHITE)
+                    container.postDelayed(
+                            { container.foreground = null }, ANIMATION_FAST_MILLIS)
+                }, ANIMATION_SLOW_MILLIS)
             }
         }
     }
-
 
     /**
      * Our custom image analysis class.
