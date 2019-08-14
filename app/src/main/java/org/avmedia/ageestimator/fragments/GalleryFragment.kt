@@ -165,22 +165,13 @@ class GalleryFragment internal constructor() : Fragment() {
 
         // Draw text
         val scanMsg = "Get the app here:"
-        val fm: Paint.FontMetrics = Paint.FontMetrics()
         val textPaint = TextPaint()
-        textPaint.textSize = 20f
-        textPaint.color = Color.RED
-        textPaint.style = Paint.Style.STROKE
-        textPaint.strokeWidth = 2f
 
         val textWidth = (textPaint.measureText(scanMsg)).toDouble()
         val textX = (left - textWidth - 10).toFloat()
         val textY = (top + 4 + (qrBitmap.height/2)).toFloat()
 
-        canvas.drawText(scanMsg, textX, textY, textPaint)
-
-        textPaint.strokeWidth = 1f
-        textPaint.color = Color.YELLOW
-        canvas.drawText(scanMsg, textX, textY, textPaint)
+        DisplayHelper.drawText(scanMsg, textX, textY, canvas, 20f, 1f)
 
         return bitmap
     }

@@ -98,20 +98,26 @@ class MoodDisplayHandler (val view: View?, val imageFile: File, val context: Con
 
         val x = (faceFrame.x1 * canvas.width).toFloat()
         val y = (faceFrame.y1 * canvas.height).toFloat()
+        val frameWidth = ((faceFrame.x2 - faceFrame.x1)*canvas.width).toFloat()
 
         // Draw text
         val fm: Paint.FontMetrics = Paint.FontMetrics()
         val textPaint = TextPaint()
         textPaint.textSize = 20f
 
-        var yOffset: Int = 10
+        var yOffset: Int = 20
+        var xCenter = 0f
         for (emotion in emotions) {
-            val text = "${emotion.label}: ${(emotion.probability*100).toInt()}%"
-            drawText(text, x, y+yOffset, canvas)
+            val text = "${emotion.label}: ${"%.2f".format(emotion.probability*100)}%"
+
+            val textWidth = textPaint.measureText(text)
+            xCenter = ((frameWidth - textWidth)/2).toFloat()
+
+            drawText(text, x + xCenter, y+yOffset, canvas, textSize = 20f, strokeWidth = 1f)
             val bounds: Rect = Rect()
             textPaint.getTextBounds(text, 0, text.length, bounds)
             val height = bounds.height()
-            yOffset += height + 4
+            yOffset += height+4
         }
 
         return bitmap
