@@ -39,7 +39,7 @@ open class ProgressBarContainer(var progressBar: ProgressBar) {
             }
 
             override fun onComplete() {
-                println ("onComplete")
+                hide ()
             }
         }
     }
