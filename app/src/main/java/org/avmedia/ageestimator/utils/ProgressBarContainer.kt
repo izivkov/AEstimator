@@ -1,3 +1,6 @@
+/*
+Author: Ivo Zivkov
+ */
 package org.avmedia.ageestimator.utils
 
 import android.os.Build

@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/*
+Author: Ivo Zivkov
+ */
+
 package org.avmedia.ageestimator.fragments
 
 import android.annotation.SuppressLint

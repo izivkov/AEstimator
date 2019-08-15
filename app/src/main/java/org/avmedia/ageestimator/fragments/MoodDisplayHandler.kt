@@ -1,3 +1,7 @@
+/*
+Author: Ivo Zivkov
+ */
+
 package org.avmedia.ageestimator.fragments
 
 import android.content.Context

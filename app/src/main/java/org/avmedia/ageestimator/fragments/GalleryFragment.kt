@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/*
+Author: Ivo Zivkov
+ */
+
 package org.avmedia.ageestimator.fragments
 
 import android.content.Context
@@ -162,16 +166,6 @@ class GalleryFragment internal constructor() : Fragment() {
                 null,
                 Rect (left, top, right, bottom),
                 paint)
-
-        // Draw text
-        val scanMsg = "Get the app here:"
-        val textPaint = TextPaint()
-
-        val textWidth = (textPaint.measureText(scanMsg)).toDouble()
-        val textX = (left - textWidth - 10).toFloat()
-        val textY = (top + 4 + (qrBitmap.height/2)).toFloat()
-
-        DisplayHelper.drawText(scanMsg, textX, textY, canvas, 20f, 1f)
 
         return bitmap
     }
