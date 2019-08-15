@@ -439,7 +439,7 @@ class CameraFragment : Fragment() {
     }
 
     companion object {
-        private const val TAG = "AgeEstimator"
+        private const val TAG = "FaceAnalyser"
         private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
         private const val PHOTO_EXTENSION = ".jpg"
 
