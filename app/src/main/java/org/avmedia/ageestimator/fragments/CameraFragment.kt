@@ -41,17 +41,9 @@ import android.util.Rational
 import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.Button
-import androidx.camera.core.CameraX
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageAnalysisConfig
-import androidx.camera.core.ImageCapture
+import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.CaptureMode
 import androidx.camera.core.ImageCapture.Metadata
-import androidx.camera.core.ImageCaptureConfig
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
-import androidx.camera.core.PreviewConfig
-import androidx.navigation.Navigation
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -59,18 +51,25 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.avmedia.ageestimator.KEY_EVENT_ACTION
-import java.io.File
-import java.nio.ByteBuffer
-import java.text.SimpleDateFormat
-import java.util.ArrayDeque
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 import org.avmedia.ageestimator.KEY_EVENT_EXTRA
 import org.avmedia.ageestimator.MainActivity
 import org.avmedia.ageestimator.R
 import org.avmedia.ageestimator.utils.ANIMATION_FAST_MILLIS
 import org.avmedia.ageestimator.utils.ANIMATION_SLOW_MILLIS
 import org.avmedia.ageestimator.utils.AutoFitPreviewBuilder
+import java.io.File
+import java.nio.ByteBuffer
+import java.text.SimpleDateFormat
+import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.collections.ArrayList
+import kotlin.collections.average
+import kotlin.collections.contains
+import kotlin.collections.firstOrNull
+import kotlin.collections.forEach
+import kotlin.collections.map
+import kotlin.collections.reversed
+import kotlin.collections.sorted
 
 
 /** Helper type alias used for analysis use case callbacks */
@@ -122,12 +121,14 @@ class CameraFragment : Fragment() {
         override fun onDisplayAdded(displayId: Int) = Unit
         override fun onDisplayRemoved(displayId: Int) = Unit
         override fun onDisplayChanged(displayId: Int) = view?.let { view ->
-            if (displayId == this@CameraFragment.displayId) {
-                Log.d(TAG, "Rotation changed: ${view.display.rotation}")
-                preview?.setTargetRotation(view.display.rotation)
-                imageCapture?.setTargetRotation(view.display.rotation)
-                imageAnalyzer?.setTargetRotation(view.display.rotation)
-            }
+            // INZ: rotation should be disabled
+
+            // if (displayId == this@CameraFragment.displayId) {
+            //  Log.d(TAG, "Rotation changed: ${view.display.rotation}")
+            //  preview?.setTargetRotation(view.display.rotation)
+            //  imageCapture?.setTargetRotation(view.display.rotation)
+            //  imageAnalyzer?.setTargetRotation(view.display.rotation)
+            // }
         } ?: Unit
     }
 
@@ -223,10 +224,6 @@ class CameraFragment : Fragment() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-    }
-
     /** Declare and bind preview, capture and analysis use cases */
     private fun bindCameraUseCases() {
 
@@ -310,18 +307,18 @@ class CameraFragment : Fragment() {
 
         // Listener for button used to capture photo
         val ageButton = controls.findViewById<Button>(R.id.age_estimation_button)
-        ageButton.setOnClickListener {clickListener(ageButton)}
+        ageButton.setOnClickListener { clickListener(ageButton) }
 
         val moodButton = controls.findViewById<Button>(R.id.mood_estimation_button)
-        moodButton.setOnClickListener {clickListener(moodButton)}
+        moodButton.setOnClickListener { clickListener(moodButton) }
     }
 
-    fun clickListener (button:Button) {
+    fun clickListener(button: Button) {
         // Get a stable reference of the modifiable image capture use case
         imageCapture?.let { imageCapture ->
 
             // Delete all files here
-            if (outputDirectory.isDirectory())
+            if (outputDirectory.isDirectory)
                 for (child: File in outputDirectory.listFiles())
                     child.delete()
 
@@ -335,16 +332,16 @@ class CameraFragment : Fragment() {
             }
 
             if (button.id == R.id.age_estimation_button) {
-                FragmentNavigator.setActionType ("age")
+                FragmentNavigator.setActionType("age")
             } else if (button.id == R.id.mood_estimation_button) {
-                FragmentNavigator.setActionType ("mood")
+                FragmentNavigator.setActionType("mood")
             }
 
             // Setup image capture listener which is triggered after photo has been taken
             imageCapture.takePicture(photoFile, imageSavedListener, metadata)
 
             // disable shutter button to prevent another picture
-            button.isClickable=false
+            button.isClickable = false
 
             // We can only change the foreground Drawable using API level 23+ API
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
