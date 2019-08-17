@@ -8,6 +8,7 @@ import android.graphics.*
 import android.text.TextPaint
 import android.widget.ImageView
 import io.reactivex.Observer
+import io.reactivex.disposables.Disposable
 import org.avmedia.ageestimator.utils.DisplayHelper
 import org.json.JSONObject
 import java.io.File
@@ -16,10 +17,27 @@ import org.avmedia.ageestimator.utils.ImageBox
 
 abstract class DisplayHandler {
 
-    abstract fun getDataObserver(): Observer<JSONObject>
     abstract val successFunc: (msg: JSONObject) -> Unit
     abstract val failFunc: (msg: String?) -> Unit
     abstract fun makeFrame(file: File, faceFrame: ImageBox, json: JSONObject, imageView: ImageView?)
+
+    fun getDataObserver(): Observer<JSONObject> {
+        return object : Observer<JSONObject> {
+            override fun onSubscribe(d: Disposable) {
+            }
+
+            override fun onNext(s: JSONObject) {
+                successFunc (s)
+            }
+
+            override fun onError(e: Throwable) {
+                failFunc (e.message)
+            }
+
+            override fun onComplete() {
+            }
+        }
+    }
 
     fun drawFaceRectanglesOnBitmap(originalBitmap: Bitmap, faceFrame: ImageBox): Bitmap {
         var bitmap: Bitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true)

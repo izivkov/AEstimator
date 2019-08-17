@@ -23,11 +23,9 @@ package org.avmedia.ageestimator.fragments
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
-import android.graphics.Color.YELLOW
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
-import android.text.TextPaint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -35,26 +33,18 @@ import android.webkit.MimeTypeMap
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
-import android.widget.TextView
-import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.FileProvider
 import androidx.exifinterface.media.ExifInterface
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.navArgs
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
 import org.avmedia.ageestimator.BuildConfig
 import org.avmedia.ageestimator.R
 import org.avmedia.ageestimator.utils.*
-import org.json.JSONArray
 import org.json.JSONObject
-import org.json.JSONStringer
 import java.io.File
-import java.io.StringReader
 import java.net.URL
 
 val EXTENSION_WHITELIST = arrayOf("JPG")
@@ -132,7 +122,7 @@ class GalleryFragment internal constructor() : Fragment() {
                 action = Intent.ACTION_SEND
                 flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
 
-                drawQRCodeToFile (imageFile, "https://play.google.com/store/apps/details?id=org.avmedia.ageestimator")
+                drawQRCodeToFile(imageFile, "https://play.google.com/store/apps/details?id=org.avmedia.ageestimator")
 
                 // Launch the intent letting the user choose which app to share with
                 startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
@@ -142,12 +132,12 @@ class GalleryFragment internal constructor() : Fragment() {
         startUploader(view)
     }
 
-    private fun drawQRCodeToFile (file: File, text: String): Unit {
+    private fun drawQRCodeToFile(file: File, text: String): Unit {
         val qrGenrator: ZxingQrCodeGenerator = ZxingQrCodeGenerator()
         val qrBitmap: Bitmap = qrGenrator.generateQrCodeSync(text, 100, 100, Color.WHITE)
 
         val origBitmap: Bitmap = BitmapExtractor.getBitmapFromFile(imageFile, context as Context)
-        val bmpWithQR: Bitmap = drawQRCodeToBitmap (origBitmap, qrBitmap)
+        val bmpWithQR: Bitmap = drawQRCodeToBitmap(origBitmap, qrBitmap)
         BitmapExtractor.setBitmapToFile(imageFile, bmpWithQR, context as Context)
     }
 
@@ -157,14 +147,14 @@ class GalleryFragment internal constructor() : Fragment() {
         val paint: Paint = Paint()
         paint.isAntiAlias = true
 
-        val right = canvas.width-5
-        val bottom = canvas.height-5
-        val left = right - qrBitmap.width;
+        val right = canvas.width - 5
+        val bottom = canvas.height - 5
+        val left = right - qrBitmap.width
         val top = bottom - qrBitmap.height
 
-        canvas.drawBitmap (qrBitmap,
+        canvas.drawBitmap(qrBitmap,
                 null,
-                Rect (left, top, right, bottom),
+                Rect(left, top, right, bottom),
                 paint)
 
         return bitmap
@@ -178,18 +168,42 @@ class GalleryFragment internal constructor() : Fragment() {
         image?.setImageBitmap(imgBitmap)
 
         val actionType = File(args.actionType)
-        val  uploader:FileUploader
+        val uploader: FileUploader
 
         if ("age" == actionType.toString()) {
             val ageHandler = AgeDisplayHandler(view, imageFile, context as Context)
-            uploader = FileUploader(URL(getString(R.string.server_age_url)), ageHandler.getDataObserver(), progressBarContainer.getProgressObserver())
+            uploader = FileUploader(URL(getString(R.string.server_age_url)), listOf(ageHandler.getDataObserver(), getFragmentDataObserver()),
+                    progressBarContainer.getProgressObserver())
 
         } else {
             val moodHandler = MoodDisplayHandler(view, imageFile, context as Context)
-            uploader = FileUploader(URL(getString(R.string.server_mood_url)), moodHandler.getDataObserver(), progressBarContainer.getProgressObserver())
+            uploader = FileUploader(URL(getString(R.string.server_mood_url)), listOf(moodHandler.getDataObserver(), getFragmentDataObserver()),
+                    progressBarContainer.getProgressObserver())
         }
 
         uploader.upload(imageFile)
+    }
+
+    fun getFragmentDataObserver(): Observer<JSONObject> {
+        return object : Observer<JSONObject> {
+            override fun onSubscribe(d: Disposable) {
+            }
+
+            override fun onNext(s: JSONObject) {
+            }
+
+            override fun onError(e: Throwable) {
+                Handler().postDelayed({
+                    fragmentManager?.popBackStack()
+                }, 5000)
+            }
+
+            override fun onComplete() {
+                Handler().postDelayed({
+                    fragmentManager?.popBackStack()
+                }, 1000 * 60 * 1)
+            }
+        }
     }
 
     private fun rotateImage(file: File) {

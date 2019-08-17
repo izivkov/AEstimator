@@ -20,7 +20,7 @@ import org.json.JSONObject
 import java.io.File
 import java.net.URL
 
-open class FileUploader constructor(baseUrl: URL, val dataObserver: Observer<JSONObject>, val progressObserver: Observer<Int>) {
+open class FileUploader constructor(baseUrl: URL, val dataObservers: List<Observer<JSONObject>>, val progressObserver: Observer<Int>) {
 
 
     init {
@@ -33,7 +33,9 @@ open class FileUploader constructor(baseUrl: URL, val dataObserver: Observer<JSO
     open fun upload(file: File) {
 
         val dataSubject = PublishSubject.create<JSONObject>()
-        dataSubject.subscribe(dataObserver)
+        for (dataObserver in dataObservers) {
+            dataSubject.subscribe(dataObserver)
+        }
 
         val progressSubject = PublishSubject.create<Int>()
         progressSubject.subscribe(progressObserver)

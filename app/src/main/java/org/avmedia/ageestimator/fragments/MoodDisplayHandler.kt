@@ -10,6 +10,7 @@ import android.text.TextPaint
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.ThemedSpinnerAdapter
 import androidx.appcompat.widget.Toolbar
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
@@ -23,23 +24,6 @@ import org.json.JSONObject
 import java.io.File
 
 class MoodDisplayHandler (val view: View?, val imageFile: File, val context: Context) : DisplayHandler () {
-    override fun getDataObserver(): Observer<JSONObject> {
-        return object : Observer<JSONObject> {
-            override fun onSubscribe(d: Disposable) {
-            }
-
-            override fun onNext(s: JSONObject) {
-                successFunc (s)
-            }
-
-            override fun onError(e: Throwable) {
-                failFunc (e.message)
-            }
-
-            override fun onComplete() {
-            }
-        }
-    }
 
     override val failFunc: (msg: String?) -> Unit = {
         val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
@@ -47,12 +31,10 @@ class MoodDisplayHandler (val view: View?, val imageFile: File, val context: Con
     }
 
     override val successFunc: (msg: JSONObject) -> Unit = {
-        println("Mood Success...")
-        val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
 
         val predictions: JSONArray? = it.get("predictions") as JSONArray
         if (predictions == null || predictions.length() == 0) {
-            textViewAge?.text = "Could not recognise face"
+            getDataObserver().onError(Throwable("Could not recognise face"))
         } else {
             for (i in 0..(predictions.length() - 1)) {
                 val prediction = predictions.getJSONObject(i)
