@@ -28,7 +28,8 @@ class AgeDisplayHandler (val view: View?, val imageFile: File, val context: Cont
     override val successFunc: (msg: JSONObject) -> Unit = {
         val predictions: JSONArray? = it.get("predictions") as JSONArray
         if (predictions == null || predictions.length() == 0) {
-            getDataObserver().onError(Throwable("Could not recognise face"))
+            val textViewAge: TextView? = view?.findViewById(R.id.myImageViewText)
+            textViewAge?.text = "Could not recognise face"
         } else {
             for (i in 0..(predictions.length() - 1)) {
                 val prediction = predictions.getJSONObject(i)

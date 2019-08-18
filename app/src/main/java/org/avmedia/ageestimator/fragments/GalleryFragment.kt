@@ -20,6 +20,7 @@ Author: Ivo Zivkov
 
 package org.avmedia.ageestimator.fragments
 
+import android.app.FragmentTransaction
 import android.content.Context
 import android.content.Intent
 import android.graphics.*
@@ -59,6 +60,10 @@ class GalleryFragment internal constructor() : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (savedInstanceState != null) {
+            return
+        }
 
         // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
         retainInstance = true
@@ -193,15 +198,9 @@ class GalleryFragment internal constructor() : Fragment() {
             }
 
             override fun onError(e: Throwable) {
-                Handler().postDelayed({
-                    fragmentManager?.popBackStack()
-                }, 5000)
             }
 
             override fun onComplete() {
-                Handler().postDelayed({
-                    fragmentManager?.popBackStack()
-                }, 1000 * 60 * 1)
             }
         }
     }
