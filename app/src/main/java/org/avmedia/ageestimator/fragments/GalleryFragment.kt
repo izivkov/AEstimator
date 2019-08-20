@@ -205,6 +205,12 @@ class GalleryFragment internal constructor() : Fragment() {
         }
     }
 
+    override fun onPause () {
+        fragmentManager?.popBackStack()
+        super.onPause()
+    }
+
+
     private fun rotateImage(file: File) {
         val bmp: Bitmap = pictureTurn(BitmapExtractor.getBitmapFromFile(file, context as Context), file.absolutePath)
         BitmapExtractor.setBitmapToFile(file, bmp, context as Context)
