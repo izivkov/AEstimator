@@ -61,10 +61,6 @@ class GalleryFragment internal constructor() : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (savedInstanceState != null) {
-            return
-        }
-
         // Mark this as a retain fragment, so the lifecycle does not get restarted on config change
         retainInstance = true
 
